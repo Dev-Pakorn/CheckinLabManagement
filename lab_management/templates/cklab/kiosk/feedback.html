@@ -1,66 +1,36 @@
 {% extends 'cklab/base.html' %}
 {% load static %}
-
-{% block title %}ขอบคุณที่ใช้บริการ - CKLab{% endblock %}
-
+{% block title %}Feedback{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-center align-items-center min-vh-100 py-4 bg-light">
-    <!-- Card หลัก -->
-    <div class="card shadow-lg border-0 text-center animate-fade" style="max-width: 500px; width: 100%; border-radius: 20px;">
-        
+    <div class="card shadow-lg border-0 text-center" style="max-width: 500px; width: 100%; border-radius: 20px;">
         <div class="card-body py-5 px-4">
-            <!-- Animation เครื่องหมายถูก (Style อยู่ใน main.css) -->
-            <div class="success-animation mb-4">
-                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-                </svg>
-            </div>
-
-            <h3 class="fw-bold mt-4 text-primary">เลิกใช้งานสำเร็จ!</h3>
-            <p class="text-muted">ขอบคุณที่ใช้บริการ CKLab</p>
-
+            <h3 class="fw-bold text-primary">เลิกใช้งานสำเร็จ!</h3>
+            <p class="text-muted">ขอบคุณที่ใช้บริการ</p>
             <hr class="my-4 opacity-10">
-
-            <!-- Form ส่งข้อมูลกลับไปที่ Django Views -->
             <form method="POST">
                 {% csrf_token %}
-                
-                <p class="mb-2 fw-bold text-secondary">ความพึงพอใจของคุณ</p>
-                
-                <!-- Star Rating Elements -->
+                <p class="fw-bold">ความพึงพอใจของคุณ</p>
                 <div class="star-rating mb-2" id="starContainer">
-                    <span data-value="1">★</span>
-                    <span data-value="2">★</span>
-                    <span data-value="3">★</span>
-                    <span data-value="4">★</span>
-                    <span data-value="5">★</span>
+                    <span data-value="1" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="2" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="3" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="4" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="5" style="font-size: 2.5rem; cursor: pointer;">★</span>
                 </div>
-                
-                <!-- Hidden Input: เก็บค่าดาวที่เลือก -->
                 <input type="hidden" name="rating" id="ratingInput" value="5">
-                
-                <!-- Text แสดงระดับคะแนน -->
                 <div id="rateText" class="fw-bold mb-4 text-success">ยอดเยี่ยม (5/5)</div>
-
-                <!-- กล่องข้อเสนอแนะ -->
-                <div class="feedback-box text-start mb-4">
-                    <label class="form-label small fw-bold text-muted ps-2">ข้อเสนอแนะเพิ่มเติม (ถ้ามี)</label>
-                    <textarea name="comment" id="comment" class="form-control rounded-3" rows="3" placeholder="พิมพ์ข้อความที่นี่..."></textarea>
+                
+                <div class="text-start mb-4">
+                    <label class="form-label small text-muted">ข้อเสนอแนะเพิ่มเติม</label>
+                    <textarea name="comment" class="form-control" rows="2"></textarea>
                 </div>
-
-                <!-- ปุ่มส่งข้อมูล -->
-                <button type="submit" class="btn btn-primary w-100 py-3 shadow-sm fw-bold rounded-pill transition-btn">
-                    ส่งข้อมูลและกลับหน้าหลัก
-                </button>
+                <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold">ส่งข้อมูล</button>
             </form>
-
         </div>
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
-<!-- ดึง Logic การทำงานจากไฟล์ภายนอก -->
 <script src="{% static 'cklab/js/feedback.js' %}"></script>
 {% endblock %}
