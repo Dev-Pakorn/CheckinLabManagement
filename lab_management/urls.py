@@ -1,5 +1,4 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
@@ -11,8 +10,8 @@ urlpatterns = [
     path('feedback/<str:pc_id>/<int:software_id>/', views.FeedbackView.as_view(), name='feedback'),
 
     # 2. ระบบ Login + จัดการ Admin User - ผู้รับผิดชอบ: สถาพร (สำรอง โดย ภานุวัฒน์)
-    path('admin-portal/login/', auth_views.LoginView.as_view(template_name='cklab/admin/admin-login.html'), name='login'),
-    path('admin-portal/logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('admin-portal/login/', views.LoginView.as_view(), name='login'), # สถาพร
+    path('admin-portal/logout/', views.LogoutView.as_view(), name='logout'), # สถาพร
     path('admin-portal/users/', views.AdminUserView.as_view(), name='admin_user'), # สถาพร (สำรอง โดย ภานุวัฒน์)
     path('admin-portal/users/<int:pk>/edit/', views.AdminUserEditView.as_view(), name='admin_user_edit'), # สถาพร (สำรอง โดย ภานุวัฒน์)
     path('admin-portal/users/<int:pk>/delete/', views.AdminUserDeleteView.as_view(), name='admin_user_delete'), # สถาพร (สำรอง โดย ภานุวัฒน์)

@@ -22,13 +22,13 @@
 
 | ผู้รับผิดชอบ (Member) | หน้าที่หลัก (Role) | Routes ที่ดูแล | View Class (CBV) | Model ที่ดูแล |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. ปภังกร** | **User / Kiosk System** | `path('', ...)`<br>`path('confirm/', ...)`<br>`path('timer/', ...)`<br>`path('feedback/', ...)` | `IndexView`<br>`ConfirmView`<br>`TimerView`<br>`FeedbackView` | — |
+| **1. ปภังกร** | **User / Kiosk System** | `path('', ...)`<br>`path('checkin/<pc_id>/', ...)`<br>`path('checkout/<pc_id>/', ...)`<br>`path('status/<pc_id>/', ...)`<br>`path('feedback/<pc_id>/<software_id>/', ...)` | `IndexView`<br>`CheckinView`<br>`CheckoutView`<br>`StatusView`<br>`FeedbackView` | — |
 | **2. สถาพร** | **Admin Auth** | `path('admin-portal/login/', ...)`<br>`path('admin-portal/logout/', ...)` | Django built-in `LoginView` / `LogoutView` | — |
 | **8. ภานุวัฒน์** | **Config + User Mgmt** | `path('admin-portal/config/', ...)`<br>`path('admin-portal/users/', ...)`<br>`path('admin-portal/users/<pk>/edit/', ...)`<br>`path('admin-portal/users/<pk>/delete/', ...)` | `AdminConfigView`<br>`AdminUserView`<br>`AdminUserEditView`<br>`AdminUserDeleteView` | `SiteConfig` |
-| **3. ธนสิทธิ์** | **Admin Monitor** | `path('admin-portal/monitor/', ...)`<br>`path('api/monitor-data/', ...)` (API) | `AdminMonitorView`<br>`ApiMonitorDataView` | `Computer` |
-| **4. อัษฎาวุธ** | **Booking** | `path('admin-portal/booking/', ...)` | `AdminBookingView`<br>`AdminImportBookingView` | `Booking` |
-| **5. ณัฐกรณ์** | **PC Manage** | `path('admin-portal/manage-pc/', ...)` | `AdminManagePcView` | `Status` |
-| **6. ลลิดา** | **Software** | `path('admin-portal/software/', ...)` | `AdminSoftwareView` | `Software` |
+| **3. ธนสิทธิ์** | **Admin Monitor** | `path('admin-portal/monitor/', ...)`<br>`path('admin-portal/checkin/<pc_id>/', ...)`<br>`path('admin-portal/checkout/<pc_id>/', ...)` | `AdminMonitorView`<br>`AdminCheckinView`<br>`AdminCheckoutView` | `Computer` |
+| **4. อัษฎาวุธ** | **Booking** | `path('admin-portal/booking/', ...)`<br>`path('admin-portal/booking/<pk>/', ...)`<br>`path('admin-portal/booking/import/', ...)` | `AdminBookingView`<br>`AdminBookingDetailView`<br>`AdminImportBookingView` | `Booking` |
+| **5. ณัฐกรณ์** | **PC Manage** | `path('admin-portal/manage-pc/', ...)`<br>`path('admin-portal/manage-pc/add/', ...)`<br>`path('admin-portal/manage-pc/<pc_id>/edit/', ...)`<br>`path('admin-portal/manage-pc/<pc_id>/delete/', ...)` | `AdminManagePcView`<br>`AdminAddPcView`<br>`AdminManagePcEditView`<br>`AdminManagePcDeleteView` | `Status` |
+| **6. ลลิดา** | **Software** | `path('admin-portal/software/', ...)`<br>`path('admin-portal/software/<pk>/edit/', ...)`<br>`path('admin-portal/software/<pk>/delete/', ...)` | `AdminSoftwareView`<br>`AdminSoftwareEditView`<br>`AdminSoftwareDeleteView` | `Software` |
 | **7. เขมมิกา** | **Report** | `path('admin-portal/report/', ...)`<br>`path('admin-portal/report/export/', ...)` (Export CSV) | `AdminReportView`<br>`AdminReportExportView` | `UsageLog` |
 
 ---
