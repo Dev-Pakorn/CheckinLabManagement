@@ -2,14 +2,8 @@ from django.db import models
 
 # ภานุวัฒน์ - สร้าง Model สำหรับการตั้งค่าระบบ (Config) เพื่อเก็บข้อมูลการตั้งค่าต่าง ๆ ของระบบ
 class SiteConfig(models.Model):
-    lab_name = models.CharField(max_length=100, default="CKLab")
-    max_session_minutes = models.PositiveIntegerField(default=120)
-    booking_enabled = models.BooleanField(default=True)
-    announcement = models.TextField(default="", blank=True)
-
-    def __str__(self):
-        return self.lab_name
-
+    lab_name = models.CharField(max_length=255)
+    
 # ลลิดา - สร้าง Model สำหรับ Software เพื่อเก็บข้อมูลซอฟต์แวร์ที่ติดตั้งในห้องปฏิบัติการ
 class Software(models.Model):
     TYPE_CHOICES = [('AI', 'AI Tool'), ('Software', 'General Software')]
