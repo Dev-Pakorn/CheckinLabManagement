@@ -21,9 +21,29 @@ def save(self, *args, **kwargs):
 def __str__(self):
         return self.lab_name
     
+    
 # ลลิดา - สร้าง Model สำหรับ Software เพื่อเก็บข้อมูลซอฟต์แวร์ที่ติดตั้งในห้องปฏิบัติการ
 class Software(models.Model):
-    pass
+    # ตัวเลือกประเภท (Dropdown) ให้ตรงกับใน JS
+    TYPE_CHOICES = [
+        ('Software', 'Software (ทั่วไป)'),
+        ('AI', 'AI Tool (ปัญญาประดิษฐ์)'),
+    ]
+
+    # 1. ชื่อรายการ (ตรงกับ item.name)
+    name = models.CharField(max_length=100, verbose_name="ชื่อรายการ")
+    
+    # 2. แพ็กเกจ / เวอร์ชัน (ตรงกับ item.version ใน JS / Package ในหน้าเว็บ)
+    version = models.CharField(max_length=50, verbose_name="แพ็กเกจ (Package)")
+    
+    # 3. ประเภท (ตรงกับ item.type)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='Software', verbose_name="ประเภท")
+    
+    # 4. วันหมดอายุ (ตรงกับ item.expire ใน JS)
+    expire_date = models.DateField(null=True, blank=True, verbose_name="วันหมดอายุ License")
+
+    def __str__(self):
+        return f"{self.name} ({self.version})"
 # อัษฎาวุธ - สร้าง Model สำหรับการจองคอมพิวเตอร์ (Booking) เพื่อเก็บข้อมูลการจองของผู้ใช้
 class Booking(models.Model):
     pass
@@ -80,6 +100,22 @@ class CheckinRecord(models.Model):
     def __str__(self):
         pc_name = self.computer.name if self.computer else "ไม่ระบุ"
         return f"ใช้งาน: {self.student_name} - {pc_name}"
+
+
+# 4. ตารางสำหรับเก็บประวัติการแจ้งเตือน (Notifications Feed)
+class ActivityLog(models.Model):
+    ACTION_CHOICES = [
+        ('CHECK_IN', 'เข้าใช้งาน'),
+        ('CHECK_OUT', 'ออกจากการใช้งาน'),
+        ('RESERVE', 'ทำการจองเครื่อง'),
+    ]
+    
+    action_type = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="ประเภทกิจกรรม")
+    message = models.CharField(max_length=255, verbose_name="รายละเอียดการแจ้งเตือน (เช่น นายสมชายเข้าใช้งาน PC-02)")
+    timestamp = models.DateTimeField(default=timezone.now, verbose_name="เวลาที่เกิดเหตุการณ์")
+
+    def __str__(self):
+        return f"[{self.get_action_type_display()}] {self.message} ({self.timestamp.strftime('%H:%M:%S')})"
 
 # เขมมิกา - สร้าง Model สำหรับบันทึกการใช้งานคอมพิวเตอร์ (UsageLog)
 class UsageLog(models.Model):
