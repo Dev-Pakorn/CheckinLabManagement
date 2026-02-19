@@ -1,1 +1,21 @@
+<<<<<<< HEAD
 .venv/ 
+=======
+# Environment
+.env
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+db.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+>>>>>>> 52e9462d0d6490bd18910b0f9d1db8b7400042d8

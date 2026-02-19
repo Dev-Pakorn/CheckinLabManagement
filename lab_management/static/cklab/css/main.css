@@ -1,0 +1,6 @@
+:root { --primary: #0d6efd; --accent: #003366; }
+body { font-family: 'Kanit', sans-serif; background-color: #f8f9fa; }
+.card { border-radius: 15px; }
+.btn { border-radius: 10px; }
+.star-rating span.active { color: #ffc107; }
+.star-rating span { color: #ddd; transition: 0.2s; }

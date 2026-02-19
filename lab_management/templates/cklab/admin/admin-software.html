@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage AI - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+
+    <div class="flex-grow-1 p-4" style="height: 100vh; overflow-y: auto;">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-dark mb-1">🤖 Manage AI & Software</h3>
+                <p class="text-muted small mb-0">จัดการรายการซอฟต์แวร์ และ AI Tools ภายในระบบ</p>
+            </div>
+        </div>
+
+        <div class="card table-card">
+            <div class="table-toolbar-header d-flex justify-content-between align-items-center p-3 border-bottom">
+                <div class="toolbar-title fw-bold">
+                    <i class="bi bi-list-ul text-primary me-1"></i> รายการในระบบ
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#softwareModal">
+                    <i class="bi bi-plus-lg"></i> เพิ่มรายการใหม่
+                </button>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">ชื่อรายการ</th>
+                            <th>แพ็กเกจ</th>
+                            <th>ประเภท</th>
+                            <th class="text-end pe-4">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in softwares %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ item.name }}</div>
+                                {% if item.expire_date %}
+                                <div class="text-muted mt-1" style="font-size: 0.75rem;"><i class="bi bi-clock-history me-1"></i>Exp: {{ item.expire_date|date:"Y-m-d" }}</div>
+                                {% endif %}
+                            </td>
+                            <td><span class="text-secondary">{{ item.version }}</span></td>
+                            <td>
+                                {% if item.type == 'AI' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-robot me-1"></i>AI Tool</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="bi bi-hdd me-1"></i>Software</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-end pe-4">
+                                <a href="{% url 'admin_software_edit' item.pk %}" class="btn btn-sm btn-light border text-primary me-1">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                
+                                <form action="{% url 'admin_software_delete' item.pk %}" method="POST" class="d-inline" onsubmit="return confirm('ยืนยันที่จะลบ {{ item.name }} ใช่หรือไม่?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-light border text-danger">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">ยังไม่มีข้อมูลในระบบ</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="softwareModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header bg-primary text-white px-4 py-3 rounded-top-4">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-cloud-plus-fill me-2"></i>เพิ่มรายการใหม่</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{% url 'admin_software' %}">
+                    {% csrf_token %}
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">ชื่อรายการ</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">แพ็กเกจ / เวอร์ชัน</label>
+                            {{ form.version }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">ประเภท</label>
+                            {{ form.type }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">วันหมดอายุ License</label>
+                            {{ form.expire_date }}
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">บันทึกข้อมูล</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

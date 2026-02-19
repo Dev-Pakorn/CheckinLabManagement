@@ -1,0 +1,36 @@
+{% extends 'cklab/base.html' %}
+{% load static %}
+{% block title %}Feedback{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center min-vh-100 py-4 bg-light">
+    <div class="card shadow-lg border-0 text-center" style="max-width: 500px; width: 100%; border-radius: 20px;">
+        <div class="card-body py-5 px-4">
+            <h3 class="fw-bold text-primary">เลิกใช้งานสำเร็จ!</h3>
+            <p class="text-muted">ขอบคุณที่ใช้บริการ</p>
+            <hr class="my-4 opacity-10">
+            <form method="POST">
+                {% csrf_token %}
+                <p class="fw-bold">ความพึงพอใจของคุณ</p>
+                <div class="star-rating mb-2" id="starContainer">
+                    <span data-value="1" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="2" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="3" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="4" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                    <span data-value="5" style="font-size: 2.5rem; cursor: pointer;">★</span>
+                </div>
+                <input type="hidden" name="rating" id="ratingInput" value="5">
+                <div id="rateText" class="fw-bold mb-4 text-success">ยอดเยี่ยม (5/5)</div>
+                
+                <div class="text-start mb-4">
+                    <label class="form-label small text-muted">ข้อเสนอแนะเพิ่มเติม</label>
+                    <textarea name="comment" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold">ส่งข้อมูล</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'cklab/js/feedback.js' %}"></script>
+{% endblock %}

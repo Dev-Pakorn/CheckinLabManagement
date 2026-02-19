@@ -1,0 +1,39 @@
+{% extends 'cklab/base.html' %}
+{% load static %}
+{% block title %}Active Session{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center min-vh-100 bg-light">
+    <div class="card border-0 shadow-lg" style="max-width: 450px; width: 100%; border-radius: 20px;">
+        <div class="bg-primary text-white text-center py-4">
+            <img src="{% static 'cklab/img/ubulogo.png' %}" style="height: 50px;" class="bg-white rounded-circle p-2 mb-2">
+            <h4 class="fw-bold">กำลังใช้งาน</h4>
+            <p class="small opacity-75">PC-{{ computer.pc_id }}</p>
+        </div>
+        <div class="card-body p-4 text-center">
+            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill mb-4">{{ user_name }}</span>
+            <div class="display-1 fw-bold text-primary mb-2" id="timerDisplay">00:00:00</div>
+            <small class="text-muted d-block mb-4">เวลาที่ใช้งาน (Elapsed)</small>
+            
+            <div id="alertBox" class="alert alert-warning d-none"><span id="alertMsg"></span></div>
+            
+            <button onclick="doCheckout()" class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm">
+                <i class="bi bi-power me-2"></i> เลิกใช้งาน
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    window.djangoData = {
+        pcId: "{{ computer.pc_id }}",
+        userName: "{{ user_name }}",
+        startTime: "{{ start_time }}",
+        forceEndTime: "{{ force_end_time|default:'' }}",
+        monitorUrl: "{% url 'api_monitor_data' %}",
+        feedbackUrl: "{% url 'feedback' %}",
+        indexUrl: "{% url 'index' %}"
+    };
+</script>
+<script src="{% static 'cklab/js/timer.js' %}"></script>
+{% endblock %}

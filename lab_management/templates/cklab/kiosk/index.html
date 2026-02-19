@@ -1,0 +1,29 @@
+{% extends 'cklab/base.html' %}
+{% load static %}
+{% block title %}Check-in{% endblock %}
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="card shadow-lg border-0 p-4" style="max-width: 450px; width: 100%; border-radius: 20px;">
+        <div class="text-center mb-4">
+            <img src="{% static 'cklab/img/ubulogo.png' %}" alt="Logo" style="height: 80px;" class="mb-3">
+            <h3 class="fw-bold">CKLab Check-in</h3>
+            <span class="badge bg-primary rounded-pill px-3 py-2">เครื่อง: {{ computer.name }}</span>
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="user_id" name="user_id" placeholder="ID" required autofocus>
+                <label for="user_id">รหัสนักศึกษา</label>
+            </div>
+            <div class="form-floating mb-4">
+                <input type="text" class="form-control" id="user_name" name="user_name" placeholder="Name" required>
+                <label for="user_name">ชื่อ-นามสกุล</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow-sm">เข้าใช้งาน</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'cklab/js/auth.js' %}"></script>
+{% endblock %}
