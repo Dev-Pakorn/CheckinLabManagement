@@ -15,7 +15,7 @@ CheckinLabManagement/
 │   └── asgi.py
 │
 ├── lab_management/               # Main application
-│   ├── models.py                 # SiteConfig, Software, Booking, Status, Computer, UsageLog
+│   ├── models.py                 # SiteConfig, AdminonDuty, Software, Booking, Computer, UsageLog
 │   ├── views/                    # Class-Based Views (CBV) — แยกไฟล์ตามผู้รับผิดชอบ
 │   │   ├── __init__.py           # Re-export ทุก class (urls.py ใช้งานได้เหมือนเดิม)
 │   │   ├── auth.py               # สถาพร: LoginView, LogoutView
@@ -161,47 +161,81 @@ python manage.py runserver
 | Model | ผู้รับผิดชอบ | หน้าที่ |
 |:---|:---|:---|
 | `SiteConfig` | ภานุวัฒน์ | เก็บค่า config ของระบบ |
-| `Software` | ลลิดา | ข้อมูล Software ที่ติดตั้งในห้อง |
+| `AdminonDuty` | ภานุวัฒน์ | ข้อมูลเจ้าหน้าที่ดูแลระบบประจำวัน |
+| `Software` | ลลิดา | ข้อมูล Software/AI ที่ติดตั้งในห้อง |
 | `Booking` | อัษฎาวุธ | ข้อมูลการจองเครื่องคอมพิวเตอร์ |
-| `Status` | ณัฐกรณ์ | สถานะของเครื่องคอมพิวเตอร์ |
-| `Computer` | ธนสิทธิ์ | ข้อมูลเครื่องคอมพิวเตอร์แต่ละเครื่อง |
-| `UsageLog` | เขมมิกา | บันทึกการใช้งานคอมพิวเตอร์ |
+| `Computer` | ณัฐกรณ์ + ธนสิทธิ์ | ข้อมูลและสถานะเครื่องคอมพิวเตอร์แต่ละเครื่อง |
+| `UsageLog` | เขมมิกา | บันทึกประวัติการใช้งานคอมพิวเตอร์ |
+
+> **หมายเหตุ:** `Status` model ถูกยุบรวมเข้า `Computer` แล้ว (field `status` อยู่ใน `Computer` โดยตรง)
+
+---
 
 ### SiteConfig (ผู้รับผิดชอบ: ภานุวัฒน์)
 
 | Field | Type | Note |
 |:---|:---|:---|
-| — | — | รอกำหนด field โดยผู้รับผิดชอบ |
+| `lab_name` | `CharField` | ชื่อห้องปฏิบัติการ (default: "CKLab") |
+| `booking_enabled` | `BooleanField` | เปิด/ปิด ระบบจอง |
+| `announcement` | `TextField` | ข้อความประกาศบนหน้า Kiosk |
+| `location` | `CharField` | สถานที่ตั้ง |
+| `is_open` | `BooleanField` | สถานะเปิด/ปิดห้องแล็บ |
+| `admin_on_duty` | `ForeignKey → AdminonDuty` | เจ้าหน้าที่ดูแลประจำวัน |
+
+### AdminonDuty (ผู้รับผิดชอบ: ภานุวัฒน์)
+
+| Field | Type | Note |
+|:---|:---|:---|
+| `admin_on_duty` | `CharField` | ชื่อเจ้าหน้าที่ดูแลระบบ |
+| `contact_phone` | `CharField` | เบอร์โทรศัพท์ติดต่อ |
+| `contact_email` | `EmailField` | อีเมลติดต่อ |
 
 ### Software (ผู้รับผิดชอบ: ลลิดา)
 
 | Field | Type | Note |
 |:---|:---|:---|
-| — | — | รอกำหนด field โดยผู้รับผิดชอบ |
+| `name` | `CharField` | ชื่อรายการ |
+| `version` | `CharField` | แพ็กเกจ / เวอร์ชัน |
+| `type` | `CharField` | ประเภท: `"Software"` หรือ `"AI"` |
+| `expire_date` | `DateField` | วันหมดอายุ License (nullable) |
 
 ### Booking (ผู้รับผิดชอบ: อัษฎาวุธ)
 
 | Field | Type | Note |
 |:---|:---|:---|
-| — | — | รอกำหนด field โดยผู้รับผิดชอบ |
+| `student_id` | `CharField` | รหัสนักศึกษา/ผู้ใช้ |
+| `computer` | `ForeignKey → Computer` | เครื่องที่จอง (nullable) |
+| `start_time` | `DateTimeField` | เวลาเริ่มใช้งาน |
+| `end_time` | `DateTimeField` | เวลาสิ้นสุดการใช้งาน |
+| `booking_date` | `DateTimeField` | วันที่ทำการจอง |
+| `status` | `CharField` | `PENDING` / `APPROVED` / `REJECTED` |
+| `created_at` | `DateTimeField` | เวลาที่ทำรายการ |
 
-### Status (ผู้รับผิดชอบ: ณัฐกรณ์)
+### Computer (ผู้รับผิดชอบ: ณัฐกรณ์ + ธนสิทธิ์)
 
 | Field | Type | Note |
 |:---|:---|:---|
-| — | — | รอกำหนด field โดยผู้รับผิดชอบ |
-
-### Computer (ผู้รับผิดชอบ: ธนสิทธิ์)
-
-| Field | Type | Note |
-|:---|:---|:---|
-| — | — | รอกำหนด field โดยผู้รับผิดชอบ |
+| `name` | `CharField` | ชื่อเครื่อง (unique) เช่น "PC-01" |
+| `Software` | `ForeignKey → Software` | ซอฟต์แวร์ที่ติดตั้ง (1 เครื่อง = 1 software) |
+| `status` | `CharField` | `AVAILABLE` / `IN_USE` / `RESERVED` / `MAINTENANCE` |
+| `last_updated` | `DateTimeField` | อัปเดตสถานะล่าสุด (auto) |
+| `description` | `TextField` | รายละเอียดเพิ่มเติม (nullable) |
 
 ### UsageLog (ผู้รับผิดชอบ: เขมมิกา)
 
 | Field | Type | Note |
 |:---|:---|:---|
-| — | — | รอกำหนด field โดยผู้รับผิดชอบ |
+| `user_id` | `CharField` | รหัสนักศึกษา/บุคลากร |
+| `user_name` | `CharField` | ชื่อ-นามสกุล |
+| `user_type` | `CharField` | `student` / `staff` / `guest` |
+| `department` | `CharField` | คณะ/หน่วยงาน (nullable) |
+| `user_year` | `CharField` | ชั้นปี (nullable) |
+| `computer` | `CharField` | ชื่อเครื่องที่ใช้ (snapshot, ไม่ใช่ FK) |
+| `Software` | `CharField` | ชื่อซอฟต์แวร์ที่ใช้ (snapshot, ไม่ใช่ FK) |
+| `start_time` | `DateTimeField` | เวลา Check-in (auto) |
+| `end_time` | `DateTimeField` | เวลา Check-out (nullable) |
+| `satisfaction_score` | `IntegerField` | คะแนนความพึงพอใจ 1-5 (nullable) |
+| `comment` | `TextField` | ข้อเสนอแนะเพิ่มเติม (nullable) |
 
 ---
 
@@ -322,7 +356,7 @@ IndexView (GET)
 
 CheckinView (POST) — /checkin/<pc_id>/
   → รับ student_id / ชื่อผู้ใช้
-  → บันทึก Computer.status = 'in_use'
+  → บันทึก Computer.status = 'IN_USE'
   → เก็บ session: session_pc_id, session_user_name, session_start_time
   → redirect → StatusView/<pc_id>/
 
@@ -335,14 +369,38 @@ CheckoutView (POST) — /checkout/<pc_id>/
 
 FeedbackView (POST) — /feedback/<pc_id>/<software_id>/
   → สร้าง UsageLog
-  → reset Computer (status='available', current_user=None)
+  → reset Computer (status='AVAILABLE')
   → session.flush()
   → redirect → IndexView
 ```
 
 ---
 
-## 10. Forms
+## 10. Booking Flow (ผู้รับผิดชอบ: อัษฎาวุธ)
+
+```
+AdminBookingView (GET) — /admin-portal/booking/
+  → แสดงรายการ Booking ทั้งหมด (filter ตาม date ถ้ามี)
+
+AdminBookingView (POST) — /admin-portal/booking/
+  → รับ BookingForm (student_id, computer, start_time, end_time)
+  → บันทึก Booking → Computer.status = 'RESERVED'
+  → redirect → AdminBookingView (GET)
+
+AdminBookingDetailView (GET/POST) — /admin-portal/booking/<pk>/
+  → GET: แสดงข้อมูล Booking
+  → POST (edit): บันทึกการเปลี่ยนแปลง
+  → POST (delete): ลบ Booking → Computer.status = 'AVAILABLE'
+  → redirect → AdminBookingView (GET)
+
+AdminImportBookingView (POST) — /admin-portal/booking/import/
+  → รับไฟล์ .csv → อ่านทีละแถว → สร้าง Booking + ตั้ง Computer.status = 'RESERVED'
+  → redirect → AdminBookingView (GET)
+```
+
+---
+
+## 11. Forms (ภาพรวม)
 
 โปรเจกต์ใช้ Django Forms แยกไฟล์ตามผู้รับผิดชอบใน `lab_management/forms/`
 
@@ -392,7 +450,7 @@ class AdminBookingView(LoginRequiredMixin, View):
 
 ---
 
-## 11. แนวทางการพัฒนา (สำหรับสมาชิกในทีม)
+## 12. แนวทางการพัฒนา (สำหรับสมาชิกในทีม)
 
 > แต่ละคนแก้ไขเฉพาะไฟล์ `views/` ของตัวเองเท่านั้น
 
