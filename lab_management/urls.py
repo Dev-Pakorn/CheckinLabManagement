@@ -1,13 +1,15 @@
 from django.urls import path
 from . import views
+from .views import kiosk
 
 urlpatterns = [
     # 1. ฝั่งผู้ใช้งาน (User / Kiosk) - ผู้รับผิดชอบ: ปภังกร
-    path('', views.IndexView.as_view(), name='index'),
-    path('checkin/<str:pc_id>/', views.CheckinView.as_view(), name='checkin'),
-    path('checkout/<str:pc_id>/', views.CheckoutView.as_view(), name='checkout'),
-    path('status/<str:pc_id>/', views.StatusView.as_view(), name='status'),
-    path('feedback/<str:pc_id>/<int:software_id>/', views.FeedbackView.as_view(), name='feedback'),
+    path('', kiosk.IndexView.as_view(), name='kiosk_index'),
+    path('checkin/<str:pc_id>/', kiosk.CheckinView.as_view(), name='kiosk_checkin'),
+    path('checkout/<str:pc_id>/', kiosk.CheckoutView.as_view(), name='kiosk_checkout'),
+    path('api/status/<str:pc_id>/', kiosk.StatusView.as_view(), name='api_status'), 
+    path('api/verify-user/', kiosk.VerifyUserAPIView.as_view(), name='api_verify_user'), 
+    path('feedback/<str:pc_id>/<int:software_id>/', kiosk.FeedbackView.as_view(), name='kiosk_feedback'),
 
     # 2. ระบบ Login + จัดการ Admin User - ผู้รับผิดชอบ: สถาพร (สำรอง โดย ภานุวัฒน์)
     path('admin-portal/login/', views.LoginView.as_view(), name='login'), # สถาพร
