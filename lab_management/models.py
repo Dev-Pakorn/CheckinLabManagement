@@ -10,15 +10,15 @@ class SiteConfig(models.Model):
     admin_on_duty = models.CharField(max_length=100, blank=True, null=True, help_text="เจ้าหน้าที่ดูแลระบบประจำวัน")
     contact_phone = models.CharField(max_length=50, blank=True, null=True, help_text="เบอร์โทรศัพท์ติดต่อ")
     is_open = models.BooleanField(default=True, help_text="สถานะการให้บริการห้องแล็บ (เปิด/ปิด)")
-class Meta:
+    class Meta:
         verbose_name = "การตั้งค่าระบบ (Site Config)"
         verbose_name_plural = "การตั้งค่าระบบ (Site Config)"
 
-def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):
         self.pk = 1 
         super(SiteConfig, self).save(*args, **kwargs)
 
-def __str__(self):
+    def __str__(self):
         return self.lab_name
     
     

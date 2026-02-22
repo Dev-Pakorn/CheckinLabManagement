@@ -1,13 +1,12 @@
-
+/* admin-software.js (Updated: Enable Search by Type) */
 
 let softwareModal;
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. เช็คสิทธิ์ Admin
     const session = DB.getSession();
-    /* ถ้าต้องการใช้งานจริง สามารถเปิดส่วนนี้ หรือใช้ Django Backend คุม Auth แทน
-    if (!session || !session.user || session.user.role !== 'admin') {
-        window.location.href = '/admin-login/'; // <- URL สำหรับ Django
+    /* if (!session || !session.user || session.user.role !== 'admin') {
+        window.location.href = 'admin-login.html';
         return;
     }
     */
