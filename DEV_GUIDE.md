@@ -40,7 +40,7 @@ CheckinLabManagement/
 │   ├── tests.py
 │   ├── management/
 │   │   └── commands/
-│   │       └── seed_data.py      # `python manage.py seed_data` — สร้างข้อมูลเริ่มต้น (Software, Computer, UsageLog, Booking, superuser)
+│   │       └── seed_data.py      # `docker compose exec web python manage.py seed_data` — สร้างข้อมูลเริ่มต้น
 │   ├── migrations/
 │   ├── templates/cklab/
 │   │   ├── base.html             # Base template (Bootstrap 5 + Kanit font)
@@ -117,12 +117,12 @@ CheckinLabManagement/
 | `POSTGRES_DB` | `settings.py`, `docker-compose.yml` | `cklab_db` |
 | `POSTGRES_USER` | `settings.py`, `docker-compose.yml` | `cklab_admin` |
 | `POSTGRES_PASSWORD` | `settings.py`, `docker-compose.yml` | `secretpassword` |
-| `POSTGRES_HOST` | `settings.py` | `localhost` |
+| `POSTGRES_HOST` | `settings.py` | `db` (Docker) |
 | `POSTGRES_PORT` | `settings.py` | `5432` |
 
 ### วิธีตั้งค่า (สำหรับสมาชิกใหม่)
 
-```powershell
+```bash
 # copy template แล้วแก้ค่าตามต้องการ
 cp .env.example .env
 ```
@@ -131,29 +131,17 @@ cp .env.example .env
 
 ## 4. Quick Start
 
-### 4.1 ติดตั้งและเริ่มต้น
+### 4.1 ติดตั้งและเริ่มต้น (รันผ่าน Docker ทั้งหมด)
 
-```powershell
-# 1. ติดตั้ง dependencies
-uv venv
-.\.venv\Scripts\activate
-uv pip install django psycopg2-binary python-dotenv
-
-# 2. ตั้งค่า environment
+```bash
+# 1. ตั้งค่า environment
 cp .env.example .env          # แก้ค่าใน .env ตามต้องการ
 
-# 3. รัน database (PostgreSQL via Docker)
-docker compose up -d
+# 2. build และเปิด container ทั้งหมด (db + web)
+docker compose up -d --build
 
-# 4. สร้าง migration จาก models.py แล้ว apply เข้า database
-python manage.py makemigrations
-python manage.py migrate
-
-# 5. seed ข้อมูลตัวอย่าง (Software, Computer, UsageLog, Booking + superuser)
-python manage.py seed_data    # admin / admin1234
-
-# 6. รัน server
-python manage.py runserver
+# 3. seed ข้อมูลตัวอย่าง (Software, Computer, UsageLog, Booking + superuser)
+docker compose exec web python manage.py seed_data    # admin / admin1234
 ```
 
 เปิดเบราว์เซอร์:
@@ -226,15 +214,15 @@ def post(self, request):
 
 **ขั้นที่ 5 — ถ้า model มีการเปลี่ยนแปลง ให้รัน migration ใหม่**
 
-```powershell
-python manage.py makemigrations
-python manage.py migrate
+```bash
+docker compose exec web python manage.py makemigrations
+docker compose exec web python manage.py migrate
 ```
 
 **ขั้นที่ 6 — รัน tests เพื่อตรวจสอบว่าไม่ได้ทำให้อะไรพัง**
 
-```powershell
-DJANGO_SETTINGS_MODULE=cklab_project.settings_test python manage.py test lab_management
+```bash
+docker compose exec web python manage.py test lab_management
 ```
 
 > ดูตัวอย่างโค้ดที่เสร็จแล้วได้ที่ `views/kiosk.py` และ `views/monitor.py`
@@ -649,9 +637,9 @@ path('admin-portal/booking/', views.AdminBookingView.as_view(), name='admin_book
 
 **5) อัปเดต Model (ถ้าจำเป็น)** ใน `lab_management/models.py` แล้วรัน:
 
-```powershell
-python manage.py makemigrations
-python manage.py migrate
+```bash
+docker compose exec web python manage.py makemigrations
+docker compose exec web python manage.py migrate
 ```
 
 ---
@@ -669,22 +657,34 @@ python manage.py migrate
 
 ---
 
-## 14. Database (Docker)
+## 14. Docker (db + web)
 
 ```yaml
 # docker-compose.yml
-version: '3.8'
 services:
   db:
     image: postgres:15
     container_name: cklab_postgres
     restart: always
-    env_file:
-      - .env          # ใช้ POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    env_file: [.env]
+    ports: ["5432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: cklab_web
+    restart: always
+    env_file: [.env]
+    environment: [POSTGRES_HOST=db]
+    ports: ["8000:8000"]
+    volumes: [.:/app]
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
@@ -692,18 +692,28 @@ volumes:
 
 คำสั่งที่ใช้บ่อย:
 
-```powershell
-docker compose up -d          # เปิด database
-docker compose down            # ปิด database
-docker compose down -v         # ปิด + ลบข้อมูลทั้งหมด
-docker ps                      # เช็คสถานะ container
+```bash
+docker compose up -d --build                              # build + เปิด container ทั้งหมด
+docker compose up -d                                      # เปิด container (ไม่ rebuild)
+docker compose down                                       # ปิด container
+docker compose down -v                                    # ปิด + ลบ volume (reset DB)
+docker compose logs -f web                                # ดู log แบบ real-time
+docker ps                                                 # เช็คสถานะ container
+
+# Django management commands (รันผ่าน Docker)
+docker compose exec web python manage.py migrate          # apply migration
+docker compose exec web python manage.py makemigrations   # สร้าง migration ใหม่
+docker compose exec web python manage.py seed_data        # seed ข้อมูลตัวอย่าง
+docker compose exec web python manage.py createsuperuser  # สร้าง admin user
+docker compose exec web python manage.py shell            # Django shell
+docker compose exec web python manage.py test lab_management  # รัน tests
 ```
 
 ---
 
 ## 15. Git Workflow
 
-```powershell
+```bash
 # ดึงโค้ดล่าสุด
 git pull origin main
 
@@ -720,7 +730,7 @@ git push origin feature/your-feature-name
 
 ### Merge branch เข้า main (local)
 
-```powershell
+```bash
 # สลับไป main
 git checkout main
 
@@ -736,7 +746,7 @@ git push origin main
 
 ### แก้ Merge Conflict
 
-```powershell
+```bash
 # หลังจาก merge แล้วมี conflict — เปิดไฟล์ที่ conflict แก้ไขด้วยมือ จากนั้น:
 git add .
 git commit -m "Resolve merge conflict"
@@ -747,7 +757,7 @@ git merge --abort
 
 ### ลบ branch หลัง merge เสร็จ
 
-```powershell
+```bash
 # ลบ branch local
 git branch -d feature/your-feature-name
 
