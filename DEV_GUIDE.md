@@ -163,7 +163,7 @@ python manage.py runserver
 
 ---
 
-### 4.2 สถานะความคืบหน้าของทีม (อัปเดต 2025-02-23)
+### 4.2 สถานะความคืบหน้าของทีม (อัปเดต 2026-02-23)
 
 | ไฟล์ | ผู้รับผิดชอบ | สถานะ | หมายเหตุ |
 |:---|:---|:---|:---|
@@ -172,7 +172,7 @@ python manage.py runserver
 | `views/monitor.py` | ธนสิทธิ์ | ✅ เสร็จแล้ว | Monitor Dashboard + Force Checkin/Checkout (JSON) |
 | `views/booking.py` | อัษฎาวุธ | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
 | `views/manage_pc.py` | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
-| `views/software.py` | ลลิดา | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
+| `views/software.py` | ลลิดา | ✅ เสร็จแล้ว | CRUD Software ครบ + นับจำนวนตามประเภท |
 | `views/report.py` | เขมมิกา | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
 | `views/config.py` | ภานุวัฒน์ | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
 
@@ -360,9 +360,9 @@ DJANGO_SETTINGS_MODULE=cklab_project.settings_test python manage.py test lab_man
 | `AdminAddPcView` | `LoginRequiredMixin, View` | GET, POST | — | เพิ่ม PC ใหม่ | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ |
 | `AdminManagePcEditView` | `LoginRequiredMixin, View` | GET, POST | `pc_id` | แก้ไขข้อมูล PC | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ |
 | `AdminManagePcDeleteView` | `LoginRequiredMixin, View` | POST | `pc_id` | ลบ PC | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ |
-| `AdminSoftwareView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Software | ลลิดา | ⏳ ยังไม่ได้ทำ |
-| `AdminSoftwareEditView` | `LoginRequiredMixin, View` | GET, POST | `pk` | แก้ไข Software | ลลิดา | ⏳ ยังไม่ได้ทำ |
-| `AdminSoftwareDeleteView` | `LoginRequiredMixin, View` | POST | `pk` | ลบ Software | ลลิดา | ⏳ ยังไม่ได้ทำ |
+| `AdminSoftwareView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Software | ลลิดา | ✅ เสร็จแล้ว |
+| `AdminSoftwareEditView` | `LoginRequiredMixin, View` | GET, POST | `pk` | แก้ไข Software | ลลิดา | ✅ เสร็จแล้ว |
+| `AdminSoftwareDeleteView` | `LoginRequiredMixin, View` | POST | `pk` | ลบ Software | ลลิดา | ✅ เสร็จแล้ว |
 | `AdminReportView` | `LoginRequiredMixin, View` | GET, POST | — | รายงานการใช้งาน | เขมมิกา | ⏳ ยังไม่ได้ทำ |
 | `AdminReportExportView` | `LoginRequiredMixin, View` | GET | — | Export UsageLog เป็น CSV | เขมมิกา | ⏳ ยังไม่ได้ทำ |
 | `AdminConfigView` | `LoginRequiredMixin, View` | GET, POST | — | ดู/แก้ไข SiteConfig | ภานุวัฒน์ | ⏳ ยังไม่ได้ทำ |
