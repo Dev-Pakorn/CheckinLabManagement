@@ -1,3 +1,46 @@
 :root { --sidebar-width: 250px; }
 #sidebar-wrapper { width: var(--sidebar-width); height: 100vh; position: fixed; background: #fff; border-right: 1px solid #eee; }
 #page-content-wrapper { margin-left: var(--sidebar-width); width: 100%; }
+/* การ์ดเลือก Software ใน Modal */
+.soft-card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 2px solid #f8f9fa;
+    background: white;
+    display: flex;
+    align-items: center;
+}
+
+.soft-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border-color: #dee2e6;
+}
+
+.soft-card.active {
+    border-color: #0d6efd !important;
+    background-color: #f0f8ff !important;
+}
+
+.soft-card.active .soft-card-content {
+    color: #0d6efd !important;
+}
+
+.hidden-checkbox {
+    display: none;
+}
+
+/* Badge สถานะในตาราง */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.8em;
+}
+
+/* ตาราง */
+.table thead th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    border: none;
+}

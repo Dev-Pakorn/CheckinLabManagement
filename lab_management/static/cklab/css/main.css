@@ -4,3 +4,59 @@ body { font-family: 'Kanit', sans-serif; background-color: #f8f9fa; }
 .btn { border-radius: 10px; }
 .star-rating span.active { color: #ffc107; }
 .star-rating span { color: #ddd; transition: 0.2s; }
+/* โครงสร้างหลักของหน้า Admin */
+#sidebar-container {
+    width: 250px;
+    height: 100vh;
+    background: #212529;
+    color: white;
+    position: sticky;
+    top: 0;
+    transition: all 0.3s;
+}
+
+.sidebar-brand {
+    padding: 1.5rem;
+    display: block;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: white;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.nav-link-admin {
+    padding: 0.8rem 1.5rem;
+    display: block;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.nav-link-admin:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+.nav-link-admin.active {
+    background: #0d6efd;
+    color: white;
+}
+
+.nav-link-admin i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+/* ปรับแต่ง Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}

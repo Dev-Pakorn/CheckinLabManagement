@@ -1,4 +1,306 @@
-{% extends "cklab/base.html" %}
-{% block title %}จัดการเครื่องคอมพิวเตอร์{% endblock %}
-{% block content %}
-{% endblock %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage PC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <link href="{% static 'cklab/css/main.css' %}" rel="stylesheet">
+    <link href="{% static 'cklab/css/admin.css' %}" rel="stylesheet"> 
+    
+    <style>
+        .soft-card { cursor: pointer; transition: all 0.2s ease-in-out; border: 2px solid #f8f9fa; }
+        .soft-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #dee2e6; }
+        .soft-card.active { border-color: #0d6efd !important; background-color: #f0f8ff !important; }
+        .soft-card.active .text-muted { color: #0d6efd !important; }
+        
+        /* เพิ่ม CSS สำหรับการล็อคการ์ด */
+        .soft-card.locked { background-color: #f8f9fa; opacity: 0.5; pointer-events: none; border-color: #e9ecef; }
+        .soft-card.locked .text-muted { color: #adb5bd !important; }
+        
+        .hidden-checkbox { display: none; }
+    </style>
+</head>
+<body class="bg-light">
+
+    <div class="d-flex">
+        <div id="sidebar-container">
+            <a href="#" class="sidebar-brand"><i class="bi bi-shield-lock me-2"></i>Admin Panel</a>
+            <nav class="mt-3">
+                <a href="#" class="nav-link-admin"><i class="bi bi-grid-fill"></i> Monitor</a>
+                <a href="{% url 'admin_manage_pc' %}" class="nav-link-admin active"><i class="bi bi-pc-display"></i> Manage PC</a>
+                <a href="#" class="nav-link-admin"><i class="bi bi-calendar-check-fill"></i> Booking</a>
+                <a href="#" class="nav-link-admin"><i class="bi bi-robot"></i> Manage AI</a>
+                <a href="#" class="nav-link-admin"><i class="bi bi-sliders"></i> System Config</a>
+                <a href="#" class="nav-link-admin"><i class="bi bi-file-earmark-bar-graph-fill"></i> Reports</a>
+                <div class="border-top my-3 mx-3"></div>
+                <form action="#" method="POST" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link-admin text-danger border-0 bg-transparent w-100 text-start" onclick="return confirm('ยืนยันออกจากระบบ?');">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </form>
+            </nav>
+        </div>
+
+        <div class="flex-grow-1 p-4" style="height: 100vh; overflow-y: auto;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="fw-bold text-dark mb-1">🛠️ Manage PC & Status</h3>
+                    <p class="text-muted small mb-0">จัดการสถานะเครื่อง (Available, In-use, Reserved, Maintenance)</p>
+                </div>
+                <button onclick="openAddModal()" class="btn btn-success shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i> เพิ่มเครื่องใหม่
+                </button>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4 py-3">ID</th>
+                                    <th>ชื่อเครื่อง</th>
+                                    <th>สถานะ</th> 
+                                    <th>ประเภท</th>
+                                    <th>Software / AI ที่ติดตั้ง</th>
+                                    <th class="text-end pe-4">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pc in computers %}
+                                <tr>
+                                    <td class="ps-4 py-3">{{ pc.id }}</td>
+                                    <td><span class="fw-bold text-dark">{{ pc.name }}</span></td>
+                                    <td>
+                                        {% if pc.status == 'AVAILABLE' %}<span class="badge bg-success">ว่าง</span>
+                                        {% elif pc.status == 'IN_USE' %}<span class="badge bg-danger">ใช้งานอยู่</span>
+                                        {% elif pc.status == 'RESERVED' %}<span class="badge bg-warning text-dark">จองแล้ว</span>
+                                        {% elif pc.status == 'MAINTENANCE' %}<span class="badge bg-secondary">แจ้งซ่อม</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if pc.installed_software and pc.installed_software.type == 'AI' %}
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-robot"></i> AI</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark border"><i class="bi bi-cpu"></i> General</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if pc.installed_software %}
+                                            <span class="fw-bold">{{ pc.installed_software.name }}</span> 
+                                            <small class="text-muted">v.{{ pc.installed_software.version }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill me-1" 
+                                            onclick="openEditModal('{{ pc.id }}', '{{ pc.name }}', '{{ pc.status }}', '{% if pc.installed_software %}{{ pc.installed_software.id }}{% else %}{% endif %}', '{% if pc.installed_software %}{{ pc.installed_software.type }}{% else %}General{% endif %}')">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        
+                                        <form action="{% url 'admin_manage_pc_delete' pc.id %}" method="POST" class="d-inline" onsubmit="return confirm('ยืนยันการลบเครื่อง {{ pc.name }} ใช่หรือไม่?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">ยังไม่มีข้อมูลคอมพิวเตอร์ในระบบ</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="pcModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header bg-primary text-white px-4 py-3 rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="modalHeaderTitle"><i class="bi bi-pc-display me-2"></i>จัดการข้อมูลเครื่อง</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="pcForm" method="POST" action="{% url 'admin_add_pc' %}">
+                        {% csrf_token %}
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">ชื่อเครื่อง (PC Name)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-pc-display"></i></span>
+                                    <input type="text" name="name" id="editPcName" class="form-control" placeholder="PC-01" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">ตั้งค่าสถานะ (Set Status)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-toggle-on"></i></span>
+                                    <select name="status" id="editPcStatus" class="form-select fw-bold">
+                                        <option value="AVAILABLE" class="text-success">🟢 ว่าง (Available)</option>
+                                        <option value="IN_USE" class="text-danger">🔴 ใช้งานอยู่ (In Use)</option>
+                                        <option value="RESERVED" class="text-warning">🟡 จองแล้ว (Reserved)</option>
+                                        <option value="MAINTENANCE" class="text-secondary">⚪ แจ้งซ่อม (Maintenance)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-muted">ประเภทการใช้งาน (Type)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-cpu"></i></span>
+                                    <select id="editPcType" class="form-select" onchange="refreshSoftwareState()">
+                                        <option value="General">💻 ใช้งานทั่วไป (General)</option>
+                                        <option value="AI">🤖 AI Workstation (เฉพาะทาง)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted mb-2">เลือก Software / AI ที่ติดตั้ง <span class="fw-normal text-muted fst-italic ms-2 small">(เลือกได้สูงสุด 1 รายการ)</span></label>
+                            <div class="card bg-white border shadow-sm rounded-3">
+                                <div class="card-body p-2 custom-scrollbar" style="max-height: 250px; overflow-y: auto;">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="soft-card p-2 rounded d-flex align-items-center mb-0 w-100" onclick="selectCard(this)">
+                                                <input type="radio" name="software_id" value="" class="hidden-checkbox" id="sw_none" data-sw-type="None" checked>
+                                                <div class="soft-card-content flex-grow-1 ms-2">
+                                                    <span class="fw-bold">ไม่มีการติดตั้งซอฟต์แวร์พิเศษ</span>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        {% for sw in softwares %}
+                                        <div class="col-12">
+                                            <label class="soft-card p-2 rounded d-flex align-items-center mb-0 w-100" onclick="selectCard(this)">
+                                                <input type="radio" name="software_id" value="{{ sw.id }}" class="hidden-checkbox" id="sw_{{ sw.id }}" data-sw-type="{{ sw.type }}">
+                                                <div class="soft-card-content flex-grow-1 ms-2">
+                                                    <span class="d-block fw-bold">{{ sw.name }} <span class="badge bg-light text-dark border">{{ sw.get_type_display }}</span></span>
+                                                    <small class="text-muted">เวอร์ชัน: {{ sw.version }}</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-light rounded-pill px-4 btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-sm">
+                                <i class="bi bi-save me-1"></i> บันทึกการเปลี่ยนแปลง
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const myModal = new bootstrap.Modal(document.getElementById('pcModal'));
+
+        // ฟังก์ชันใหม่: อัปเดตสถานะการล็อคของการ์ด Software ตามประเภท PC
+        function refreshSoftwareState() {
+            const pcType = document.getElementById('editPcType').value;
+            const radios = document.querySelectorAll('input[name="software_id"]');
+            
+            radios.forEach(radio => {
+                if (radio.id === 'sw_none') return; // ข้ามตัวเลือก "ไม่มีซอฟต์แวร์"
+                
+                const swType = radio.getAttribute('data-sw-type');
+                const card = radio.closest('.soft-card');
+                
+                // กฎ: ถ้าเลือกเครื่อง General จะไม่สามารถเลือก AI ได้
+                if (pcType === 'General' && swType === 'AI') {
+                    card.classList.add('locked');
+                    card.classList.remove('active');
+                    
+                    // หากผู้ใช้เผลอกดค้างไว้ ให้บังคับเปลี่ยนกลับไปที่ 'sw_none'
+                    if (radio.checked) {
+                        radio.checked = false;
+                        const noneOption = document.getElementById('sw_none');
+                        noneOption.checked = true;
+                        noneOption.closest('.soft-card').classList.add('active');
+                    }
+                } else {
+                    card.classList.remove('locked');
+                }
+            });
+        }
+
+        // อัปเดตฟังก์ชันนี้ ให้เช็คสถานะ Locked ก่อนทำการ Active
+        function selectCard(element) {
+            if (element.classList.contains('locked')) return; // ถ้าล็อคอยู่ ห้ามกด
+
+            document.querySelectorAll('.soft-card').forEach(card => card.classList.remove('active'));
+            element.classList.add('active');
+            
+            // ให้ Radio Button ทำงานเมื่อกดที่ Card
+            const radio = element.querySelector('input[type="radio"]');
+            if(radio) radio.checked = true;
+        }
+
+        function openAddModal() {
+            document.getElementById('modalHeaderTitle').innerText = 'เพิ่มเครื่องใหม่';
+            document.getElementById('pcForm').action = "{% url 'admin_add_pc' %}";
+            document.getElementById('editPcName').value = '';
+            document.getElementById('editPcStatus').value = 'AVAILABLE';
+            
+            // ตั้งค่าเริ่มต้นเป็น General
+            document.getElementById('editPcType').value = 'General';
+            
+            document.getElementById('sw_none').checked = true;
+            document.querySelectorAll('.soft-card').forEach(card => card.classList.remove('active'));
+            document.getElementById('sw_none').closest('.soft-card').classList.add('active');
+            
+            refreshSoftwareState();
+            myModal.show();
+        }
+
+        function openEditModal(id, name, status, softwareId, softwareType) {
+            document.getElementById('modalHeaderTitle').innerText = 'แก้ไขข้อมูลเครื่อง: ' + name;
+            document.getElementById('pcForm').action = `/admin-portal/manage-pc/${id}/edit/`; 
+            
+            document.getElementById('editPcName').value = name;
+            document.getElementById('editPcStatus').value = status;
+            
+            // ตั้งค่า Dropdown ให้ตรงกับประเภท Software ในเครื่อง
+            document.getElementById('editPcType').value = (softwareType === 'AI') ? 'AI' : 'General';
+            
+            document.querySelectorAll('.soft-card').forEach(card => card.classList.remove('active'));
+            
+            if (softwareId) {
+                let radio = document.getElementById('sw_' + softwareId);
+                if(radio) {
+                    radio.checked = true;
+                    radio.closest('.soft-card').classList.add('active'); 
+                }
+            } else {
+                document.getElementById('sw_none').checked = true;
+                document.getElementById('sw_none').closest('.soft-card').classList.add('active');
+            }
+            
+            // สั่งอัปเดตการล็อค
+            refreshSoftwareState();
+            myModal.show();
+        }
+    </script>
+</body>
+</html>

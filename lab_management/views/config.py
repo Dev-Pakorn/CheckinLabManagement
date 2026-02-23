@@ -31,3 +31,4 @@ class AdminUserEditView(LoginRequiredMixin, View):
 class AdminUserDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         pass
+
