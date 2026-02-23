@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import kiosk
+from .views import kiosk , auth , monitor
 
 # (ในอนาคตถ้าเพื่อนทำไฟล์อื่นเสร็จ ให้มาเพิ่มตรงนี้ เช่น from .views import auth, monitor, booking)
 
@@ -18,16 +18,16 @@ urlpatterns = [
     # ==============================================================
 
     # 2. ระบบ Login + จัดการ Admin User - ผู้รับผิดชอบ: สถาพร (สำรอง โดย ภานุวัฒน์)
-    # path('admin-portal/login/', auth.LoginView.as_view(), name='login'), # สถาพร
-    # path('admin-portal/logout/', auth.LogoutView.as_view(), name='logout'), # สถาพร
+    path('admin-portal/login/', auth.LoginView.as_view(), name='login'), # สถาพร
+    path('admin-portal/logout/', auth.LogoutView.as_view(), name='logout'), # สถาพร
     # path('admin-portal/users/', auth.AdminUserView.as_view(), name='admin_user'), # สถาพร (สำรอง โดย ภานุวัฒน์)
     # path('admin-portal/users/<int:pk>/edit/', auth.AdminUserEditView.as_view(), name='admin_user_edit'), # สถาพร (สำรอง โดย ภานุวัฒน์)
     # path('admin-portal/users/<int:pk>/delete/', auth.AdminUserDeleteView.as_view(), name='admin_user_delete'), # สถาพร (สำรอง โดย ภานุวัฒน์)
 
     # 3. ฝั่งผู้ดูแลระบบ (Admin Portal)
-    # path('admin-portal/monitor/', monitor.AdminMonitorView.as_view(), name='admin_monitor'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
-    # path('admin-portal/checkin/<str:pc_id>/', monitor.AdminCheckinView.as_view(), name='admin_checkin'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
-    # path('admin-portal/checkout/<str:pc_id>/', monitor.AdminCheckoutView.as_view(), name='admin_checkout'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
+    path('admin-portal/monitor/', monitor.AdminMonitorView.as_view(), name='admin_monitor'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
+    path('admin-portal/checkin/<str:pc_id>/', monitor.AdminCheckinView.as_view(), name='admin_checkin'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
+    path('admin-portal/checkout/<str:pc_id>/', monitor.AdminCheckoutView.as_view(), name='admin_checkout'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
     # path('admin-portal/booking/', booking.AdminBookingView.as_view(), name='admin_booking'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
     # path('admin-portal/booking/<int:pk>/', booking.AdminBookingDetailView.as_view(), name='admin_booking_detail'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
     # path('admin-portal/booking/import/', booking.AdminImportBookingView.as_view(), name='admin_booking_import'), # อัษฎาวุธ  (สำรอง โดย ลลิดา)
