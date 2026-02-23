@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import kiosk
+from .views import kiosk , auth , monitor
 
 urlpatterns = [
     # 1. ฝั่งผู้ใช้งาน (User / Kiosk) - ผู้รับผิดชอบ: ปภังกร

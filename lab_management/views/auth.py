@@ -1,27 +1,48 @@
-# สถาพร — Login / Logout
+# ปภังกร — Login / Logout
 from django.contrib.auth import views as auth_views
-
-# TODO: Models ที่ต้องใช้จาก ..models
-#   - AdminonDuty → อัปเดตข้อมูลผู้ดูแลเครื่องเมื่อ login / ล้างข้อมูลเมื่อ logout
-#   - SiteConfig  → ผูก AdminonDuty เข้ากับ config ปัจจุบัน
-
+from django.shortcuts import redirect
+from lab_management.models import SiteConfig, AdminonDuty
 
 class LoginView(auth_views.LoginView):
     template_name = 'cklab/admin/admin-login.html'
 
-    # TODO: override form_valid() เพื่ออัปเดต AdminonDuty หลัง login สำเร็จ
-    #   def form_valid(self, form):
-    #       response = super().form_valid(form)
-    #       # บันทึกชื่อ / เบอร์ / อีเมลของ admin ที่เพิ่ง login ลงใน AdminonDuty
-    #       # ผูก SiteConfig.admin_on_duty = AdminonDuty ที่อัปเดต
-    #       return response
+    def form_valid(self, form):
+        # ทำการ Login ให้สำเร็จก่อน
+        response = super().form_valid(form)
+        user = form.get_user()
+        
+        # ดึงหรือสร้าง Object SiteConfig และ AdminonDuty (ID=1 เพราะมีแค่อันเดียวในระบบ)
+        config, _ = SiteConfig.objects.get_or_create(id=1)
+        admin_duty, _ = AdminonDuty.objects.get_or_create(id=1)
+        
+        # อัปเดตข้อมูลผู้ดูแลเครื่องที่เพิ่งล็อกอิน
+        admin_duty.admin_on_duty = user.get_full_name() or user.username
+        admin_duty.contact_email = user.email
+        admin_duty.contact_phone = "-" # ใส่ขีดไว้ก่อน (หากมีการทำระบบ Profile เพิ่มค่อยมาแก้ดึงเบอร์โทรตรงนี้)
+        admin_duty.save()
+
+        # ผูกเข้ากับ SiteConfig
+        config.admin_on_duty = admin_duty
+        config.save()
+
+        return response
 
 
 class LogoutView(auth_views.LogoutView):
-    next_page = '/admin-portal/login/'
+    # กำหนด URL Name ที่จะให้เด้งไปหลัง Logout (เดี๋ยวเราไปตั้งชื่อนี้ใน urls.py กัน)
+    next_page = 'admin_login' 
 
-    # TODO: override dispatch() เพื่อล้าง AdminonDuty ก่อน logout
-    #   def dispatch(self, request, *args, **kwargs):
-    #       # ล้างทุก field ของ AdminonDuty ที่ผูกกับ SiteConfig ปัจจุบัน:
-    #       #   admin_on_duty = None, contact_phone = None, contact_email = None
-    #       return super().dispatch(request, *args, **kwargs)
+    def dispatch(self, request, *args, **kwargs):
+        # ดึง SiteConfig ปัจจุบัน
+        config = SiteConfig.objects.filter(id=1).first()
+        
+        if config and config.admin_on_duty:
+            # ล้างข้อมูลของ AdminonDuty เมื่อกดออกจากระบบ
+            admin_duty = config.admin_on_duty
+            admin_duty.admin_on_duty = None
+            admin_duty.contact_phone = None
+            admin_duty.contact_email = None
+            admin_duty.save()
+
+        # เคลียร์ Session ออกจากระบบ
+        return super().dispatch(request, *args, **kwargs)
