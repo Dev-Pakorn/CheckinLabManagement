@@ -12,8 +12,8 @@ urlpatterns = [
     path('feedback/<str:pc_id>/<int:software_id>/', kiosk.FeedbackView.as_view(), name='kiosk_feedback'),
 
     # 2. ระบบ Login + จัดการ Admin User - ผู้รับผิดชอบ: สถาพร (สำรอง โดย ภานุวัฒน์)
-    path('admin-portal/login/', views.LoginView.as_view(), name='login'), # สถาพร
-    path('admin-portal/logout/', views.LogoutView.as_view(), name='logout'), # สถาพร
+    path('admin-portal/login/', views.LoginView.as_view(), name='admin_login'),
+    path('admin-portal/logout/', views.LogoutView.as_view(), name='admin_logout'),
     path('admin-portal/users/', views.AdminUserView.as_view(), name='admin_user'), # สถาพร (สำรอง โดย ภานุวัฒน์)
     path('admin-portal/users/<int:pk>/edit/', views.AdminUserEditView.as_view(), name='admin_user_edit'), # สถาพร (สำรอง โดย ภานุวัฒน์)
     path('admin-portal/users/<int:pk>/delete/', views.AdminUserDeleteView.as_view(), name='admin_user_delete'), # สถาพร (สำรอง โดย ภานุวัฒน์)

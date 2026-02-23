@@ -163,7 +163,22 @@ python manage.py runserver
 
 ---
 
-### 4.2 แนวทางการเริ่มต้นพัฒนา (สำหรับนักศึกษา)
+### 4.2 สถานะความคืบหน้าของทีม (อัปเดต 2026-02-23)
+
+| ไฟล์ | ผู้รับผิดชอบ | สถานะ | หมายเหตุ |
+|:---|:---|:---|:---|
+| `views/auth.py` | ปภังกร | ✅ เสร็จแล้ว | Login/Logout + บันทึก AdminonDuty |
+| `views/kiosk.py` | ปภังกร | ✅ เสร็จแล้ว | Checkin/Checkout/Feedback + VerifyUser (UBU API) |
+| `views/monitor.py` | ธนสิทธิ์ | ✅ เสร็จแล้ว | Monitor Dashboard + Force Checkin/Checkout (JSON) |
+| `views/booking.py` | อัษฎาวุธ | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
+| `views/manage_pc.py` | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
+| `views/software.py` | ลลิดา | ✅ เสร็จแล้ว | CRUD Software ครบ + นับจำนวนตามประเภท |
+| `views/report.py` | เขมมิกา | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
+| `views/config.py` | ภานุวัฒน์ | ⏳ ยังไม่ได้ทำ | ทุก method ยังเป็น `pass` |
+
+---
+
+### 4.3 แนวทางการเริ่มต้นพัฒนา (สำหรับนักศึกษา)
 
 > **เป้าหมาย:** เติม logic ใน `views/` ของตัวเองให้ครบ แต่ละ method ปัจจุบันมีแค่ `pass`
 
@@ -221,6 +236,8 @@ python manage.py migrate
 ```powershell
 DJANGO_SETTINGS_MODULE=cklab_project.settings_test python manage.py test lab_management
 ```
+
+> ดูตัวอย่างโค้ดที่เสร็จแล้วได้ที่ `views/kiosk.py` และ `views/monitor.py`
 
 ---
 
@@ -313,37 +330,45 @@ DJANGO_SETTINGS_MODULE=cklab_project.settings_test python manage.py test lab_man
 
 ### 6.1 Kiosk Views (ไม่ต้อง Login) — ผู้รับผิดชอบ: ปภังกร
 
-| Class | Base | HTTP Methods | URL Parameter | หน้าที่ |
-|:---|:---|:---|:---|:---|
-| `IndexView` | `View` | GET, POST | — | หน้าหลัก Kiosk |
-| `CheckinView` | `View` | GET, POST | `pc_id` | Check-in เข้าใช้เครื่อง |
-| `CheckoutView` | `View` | GET, POST | `pc_id` | Check-out ออกจากเครื่อง |
-| `StatusView` | `View` | GET | `pc_id` | ตรวจสอบ session ปัจจุบัน |
-| `FeedbackView` | `View` | GET, POST | `pc_id`, `software_id` | ให้คะแนน Software หลัง Check-out |
-
-### 6.2 Admin Views (ต้อง Login — `LoginRequiredMixin`)
-
-| Class | Base | HTTP Methods | URL Parameter | หน้าที่ | ผู้รับผิดชอบ |
+| Class | Base | HTTP Methods | URL Parameter | หน้าที่ | สถานะ |
 |:---|:---|:---|:---|:---|:---|
-| `AdminUserView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Admin User | สถาพร |
-| `AdminUserEditView` | `LoginRequiredMixin, View` | GET, POST | `pk` | แก้ไข Admin User | สถาพร |
-| `AdminUserDeleteView` | `LoginRequiredMixin, View` | POST | `pk` | ลบ Admin User | สถาพร |
-| `AdminMonitorView` | `LoginRequiredMixin, View` | GET, POST | — | Dashboard แสดง Computer ทั้งหมด | ธนสิทธิ์ |
-| `AdminCheckinView` | `LoginRequiredMixin, View` | POST | `pc_id` | Admin Check-in แทน User | ธนสิทธิ์ |
-| `AdminCheckoutView` | `LoginRequiredMixin, View` | POST | `pc_id` | Admin Check-out แทน User | ธนสิทธิ์ |
-| `AdminBookingView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Booking | อัษฎาวุธ |
-| `AdminBookingDetailView` | `LoginRequiredMixin, View` | GET, POST | `pk` | ดู / แก้ไข Booking รายการ | อัษฎาวุธ |
-| `AdminImportBookingView` | `LoginRequiredMixin, View` | POST | — | Import ข้อมูล Booking จาก CSV | อัษฎาวุธ |
-| `AdminManagePcView` | `LoginRequiredMixin, View` | GET | — | ดูรายการ PC ทั้งหมด | ณัฐกรณ์ |
-| `AdminAddPcView` | `LoginRequiredMixin, View` | GET, POST | — | เพิ่ม PC ใหม่ | ณัฐกรณ์ |
-| `AdminManagePcEditView` | `LoginRequiredMixin, View` | GET, POST | `pc_id` | แก้ไขข้อมูล PC | ณัฐกรณ์ |
-| `AdminManagePcDeleteView` | `LoginRequiredMixin, View` | POST | `pc_id` | ลบ PC | ณัฐกรณ์ |
-| `AdminSoftwareView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Software | ลลิดา |
-| `AdminSoftwareEditView` | `LoginRequiredMixin, View` | GET, POST | `pk` | แก้ไข Software | ลลิดา |
-| `AdminSoftwareDeleteView` | `LoginRequiredMixin, View` | POST | `pk` | ลบ Software | ลลิดา |
-| `AdminReportView` | `LoginRequiredMixin, View` | GET, POST | — | รายงานการใช้งาน | เขมมิกา |
-| `AdminReportExportView` | `LoginRequiredMixin, View` | GET | — | Export UsageLog เป็น CSV | เขมมิกา |
-| `AdminConfigView` | `LoginRequiredMixin, View` | GET, POST | — | ดู/แก้ไข SiteConfig | ภานุวัฒน์ |
+| `IndexView` | `View` | GET, POST | — | หน้าหลัก Kiosk | ✅ เสร็จแล้ว |
+| `CheckinView` | `View` | GET, POST | `pc_id` | Check-in เข้าใช้เครื่อง | ✅ เสร็จแล้ว |
+| `CheckoutView` | `View` | GET, POST | `pc_id` | Check-out ออกจากเครื่อง | ✅ เสร็จแล้ว |
+| `StatusView` | `View` | GET | `pc_id` | ดึงสถานะ PC แบบ JSON (Real-time) | ✅ เสร็จแล้ว |
+| `VerifyUserAPIView` | `View` | POST | — | ตรวจสอบรหัสนักศึกษาผ่าน UBU API | ✅ เสร็จแล้ว |
+| `FeedbackView` | `View` | GET, POST | `pc_id`, `software_id` | ให้คะแนน Software หลัง Check-out | ✅ เสร็จแล้ว |
+
+### 6.2 Auth Views — ผู้รับผิดชอบ: ปภังกร
+
+| Class | Base | HTTP Methods | หน้าที่ | สถานะ |
+|:---|:---|:---|:---|:---|
+| `LoginView` | `auth_views.LoginView` | GET, POST | Login + บันทึก AdminonDuty | ✅ เสร็จแล้ว |
+| `LogoutView` | `auth_views.LogoutView` | POST | Logout + ล้าง AdminonDuty | ✅ เสร็จแล้ว |
+
+### 6.3 Admin Views (ต้อง Login — `LoginRequiredMixin`)
+
+| Class | Base | HTTP Methods | URL Parameter | หน้าที่ | ผู้รับผิดชอบ | สถานะ |
+|:---|:---|:---|:---|:---|:---|:---|
+| `AdminMonitorView` | `LoginRequiredMixin, View` | GET, POST | — | Dashboard แสดง Computer (รองรับ JSON Ajax) | ธนสิทธิ์ | ✅ เสร็จแล้ว |
+| `AdminCheckinView` | `LoginRequiredMixin, View` | POST | `pc_id` | Admin Force Check-in แทน User | ธนสิทธิ์ | ✅ เสร็จแล้ว |
+| `AdminCheckoutView` | `LoginRequiredMixin, View` | POST | `pc_id` | Admin Force Check-out แทน User | ธนสิทธิ์ | ✅ เสร็จแล้ว |
+| `AdminBookingView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Booking | อัษฎาวุธ | ⏳ ยังไม่ได้ทำ |
+| `AdminBookingDetailView` | `LoginRequiredMixin, View` | GET, POST | `pk` | ดู / แก้ไข Booking รายการ | อัษฎาวุธ | ⏳ ยังไม่ได้ทำ |
+| `AdminImportBookingView` | `LoginRequiredMixin, View` | POST | — | Import ข้อมูล Booking จาก CSV | อัษฎาวุธ | ⏳ ยังไม่ได้ทำ |
+| `AdminManagePcView` | `LoginRequiredMixin, View` | GET | — | ดูรายการ PC ทั้งหมด | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ |
+| `AdminAddPcView` | `LoginRequiredMixin, View` | GET, POST | — | เพิ่ม PC ใหม่ | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ |
+| `AdminManagePcEditView` | `LoginRequiredMixin, View` | GET, POST | `pc_id` | แก้ไขข้อมูล PC | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ |
+| `AdminManagePcDeleteView` | `LoginRequiredMixin, View` | POST | `pc_id` | ลบ PC | ณัฐกรณ์ | ⏳ ยังไม่ได้ทำ |
+| `AdminSoftwareView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Software | ลลิดา | ✅ เสร็จแล้ว |
+| `AdminSoftwareEditView` | `LoginRequiredMixin, View` | GET, POST | `pk` | แก้ไข Software | ลลิดา | ✅ เสร็จแล้ว |
+| `AdminSoftwareDeleteView` | `LoginRequiredMixin, View` | POST | `pk` | ลบ Software | ลลิดา | ✅ เสร็จแล้ว |
+| `AdminReportView` | `LoginRequiredMixin, View` | GET, POST | — | รายงานการใช้งาน | เขมมิกา | ⏳ ยังไม่ได้ทำ |
+| `AdminReportExportView` | `LoginRequiredMixin, View` | GET | — | Export UsageLog เป็น CSV | เขมมิกา | ⏳ ยังไม่ได้ทำ |
+| `AdminConfigView` | `LoginRequiredMixin, View` | GET, POST | — | ดู/แก้ไข SiteConfig | ภานุวัฒน์ | ⏳ ยังไม่ได้ทำ |
+| `AdminUserView` | `LoginRequiredMixin, View` | GET, POST | — | ดูรายการ / เพิ่ม Admin User | ภานุวัฒน์ | ⏳ ยังไม่ได้ทำ |
+| `AdminUserEditView` | `LoginRequiredMixin, View` | GET, POST | `pk` | แก้ไข Admin User | ภานุวัฒน์ | ⏳ ยังไม่ได้ทำ |
+| `AdminUserDeleteView` | `LoginRequiredMixin, View` | POST | `pk` | ลบ Admin User | ภานุวัฒน์ | ⏳ ยังไม่ได้ทำ |
 
 ---
 
@@ -356,7 +381,8 @@ Root: `cklab_project/urls.py` → `include('lab_management.urls')`
 /                                          → IndexView
 /checkin/<pc_id>/                          → CheckinView
 /checkout/<pc_id>/                         → CheckoutView
-/status/<pc_id>/                           → StatusView
+/status/<pc_id>/                           → StatusView  (JSON API — Real-time)
+/verify-user/                              → VerifyUserAPIView  (JSON API — UBU Student API)
 /feedback/<pc_id>/<software_id>/           → FeedbackView
 
 # Auth
