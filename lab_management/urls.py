@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import kiosk , auth , monitor
+from .views import kiosk, auth, monitor, manage_pc, software
 
 # (ในอนาคตถ้าเพื่อนทำไฟล์อื่นเสร็จ ให้มาเพิ่มตรงนี้ เช่น from .views import auth, monitor, booking)
 
@@ -28,16 +28,20 @@ urlpatterns = [
     path('admin-portal/monitor/', monitor.AdminMonitorView.as_view(), name='admin_monitor'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
     path('admin-portal/checkin/<str:pc_id>/', monitor.AdminCheckinView.as_view(), name='admin_checkin'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
     path('admin-portal/checkout/<str:pc_id>/', monitor.AdminCheckoutView.as_view(), name='admin_checkout'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
+    
     # path('admin-portal/booking/', booking.AdminBookingView.as_view(), name='admin_booking'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
     # path('admin-portal/booking/<int:pk>/', booking.AdminBookingDetailView.as_view(), name='admin_booking_detail'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
     # path('admin-portal/booking/import/', booking.AdminImportBookingView.as_view(), name='admin_booking_import'), # อัษฎาวุธ  (สำรอง โดย ลลิดา)
-    # path('admin-portal/manage-pc/', manage_pc.AdminManagePcView.as_view(), name='admin_manage_pc'), # ณัฐกรณ์  (สำรอง โดย ลลิดา)
-    # path('admin-portal/manage-pc/add/', manage_pc.AdminAddPcView.as_view(), name='admin_add_pc'), # ณัฐกรณ์
-    # path('admin-portal/manage-pc/<str:pc_id>/edit/', manage_pc.AdminManagePcEditView.as_view(), name='admin_manage_pc_edit'), # ณัฐกรณ์ (สำรอง โดย ลลิดา)
-    # path('admin-portal/manage-pc/<str:pc_id>/delete/', manage_pc.AdminManagePcDeleteView.as_view(), name='admin_manage_pc_delete'), # ณัฐกรณ์ (สำรอง โดย ลลิดา)
-    # path('admin-portal/software/', software.AdminSoftwareView.as_view(), name='admin_software'), # ลลิดา  
-    # path('admin-portal/software/<int:pk>/edit/', software.AdminSoftwareEditView.as_view(), name='admin_software_edit'), # ลลิดา
-    # path('admin-portal/software/<int:pk>/delete/', software.AdminSoftwareDeleteView.as_view(), name='admin_software_delete'), # ลลิดา
+    
+    path('admin-portal/manage-pc/', manage_pc.AdminManagePcView.as_view(), name='admin_manage_pc'), # ณัฐกรณ์  (สำรอง โดย ลลิดา)
+    path('admin-portal/manage-pc/add/', manage_pc.AdminAddPcView.as_view(), name='admin_add_pc'), # ณัฐกรณ์
+    path('admin-portal/manage-pc/<str:pc_id>/edit/', manage_pc.AdminManagePcEditView.as_view(), name='admin_manage_pc_edit'), # ณัฐกรณ์ (สำรอง โดย ลลิดา)
+    path('admin-portal/manage-pc/<str:pc_id>/delete/', manage_pc.AdminManagePcDeleteView.as_view(), name='admin_manage_pc_delete'), # ณัฐกรณ์ (สำรอง โดย ลลิดา)
+    
+    path('admin-portal/software/', software.AdminSoftwareView.as_view(), name='admin_software'), # ลลิดา  
+    path('admin-portal/software/<int:pk>/edit/', software.AdminSoftwareEditView.as_view(), name='admin_software_edit'), # ลลิดา
+    path('admin-portal/software/<int:pk>/delete/', software.AdminSoftwareDeleteView.as_view(), name='admin_software_delete'), # ลลิดา
+    
     # path('admin-portal/report/', report.AdminReportView.as_view(), name='admin_report'), # เขมมิกา
     # path('admin-portal/report/export/', report.AdminReportExportView.as_view(), name='admin_report_export'), # เขมมิกา
     # path('admin-portal/config/', config.AdminConfigView.as_view(), name='admin_config'), # ภานุวัฒน์
