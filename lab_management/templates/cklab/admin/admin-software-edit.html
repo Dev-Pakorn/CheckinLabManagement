@@ -17,6 +17,7 @@
 
 {% block content %}
 <div class="d-flex" style="height: 100vh; width: 100vw; position: absolute; top:0; left:0;">
+<<<<<<< HEAD
     
     <div id="sidebar-container" class="shadow-sm">
         <a href="{% url 'admin_monitor' %}" class="sidebar-brand">
@@ -42,6 +43,26 @@
     </div>
 
     <div id="page-content-wrapper" class="overflow-y-auto vh-100 bg-light w-100">
+=======
+
+    <div id="sidebar-container" class="shadow-sm">
+        <div class="p-4">
+            <a href="{% url 'admin_monitor' %}" class="sidebar-brand"><i class="bi bi-shield-lock me-2"></i>Admin Panel</a>
+            <nav class="nav flex-column mt-4">
+                <a href="{% url 'admin_monitor' %}" class="nav-link text-dark py-2"><i class="bi bi-grid-fill me-2"></i> Monitor</a>
+                <a href="{% url 'admin_manage_pc' %}" class="nav-link text-dark py-2"><i class="bi bi-pc-display me-2"></i> Manage PC</a>
+                <a href="{% url 'admin_booking' %}" class="nav-link text-dark py-2"><i class="bi bi-calendar-check-fill me-2"></i> Booking</a>
+                <a href="{% url 'admin_software' %}" class="nav-link text-primary fw-bold py-2"><i class="bi bi-robot me-2"></i> Manage AI</a>
+                <a href="{% url 'admin_config' %}" class="nav-link text-dark py-2"><i class="bi bi-sliders me-2"></i> System Config</a>
+                <a href="{% url 'admin_report' %}" class="nav-link text-dark py-2"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reports</a>
+                <div class="border-top my-3"></div>
+                <a href="{% url 'admin_logout' %}" onclick="return confirm('ยืนยันออกจากระบบ?')" class="nav-link text-danger py-2"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
+            </nav>
+        </div>
+    </div>
+
+    <div id="page-content-wrapper" class="overflow-y-auto vh-100 flex-grow-1 bg-light">
+>>>>>>> b0fc30493564651f0a09471542713232a07964bc
         <div class="container-fluid p-4 d-flex justify-content-center align-items-center" style="min-height: 100vh;">
             
             <div class="card border-0 shadow-sm rounded-4 w-100" style="max-width: 750px;">

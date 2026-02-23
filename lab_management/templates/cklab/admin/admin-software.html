@@ -17,6 +17,7 @@
 
 {% block content %}
 <div class="d-flex" style="height: 100vh; width: 100vw; position: absolute; top:0; left:0;">
+<<<<<<< HEAD
     
     <div id="sidebar-container" class="shadow-sm">
         <a href="{% url 'admin_monitor' %}" class="sidebar-brand">
@@ -50,6 +51,33 @@
             <div>
                 <h3 class="fw-bold text-dark mb-1">🤖 Manage AI & Software</h3>
                 <p class="text-muted small mb-0">จัดการรายการซอฟต์แวร์ และ AI Tools ภายในระบบ</p>
+=======
+
+    <div id="sidebar-container" class="shadow-sm">
+        <div class="p-4">
+            <a href="{% url 'admin_monitor' %}" class="sidebar-brand"><i class="bi bi-shield-lock me-2"></i>Admin Panel</a>
+            <nav class="nav flex-column mt-4">
+                <a href="{% url 'admin_monitor' %}" class="nav-link text-dark py-2"><i class="bi bi-grid-fill me-2"></i> Monitor</a>
+                <a href="{% url 'admin_manage_pc' %}" class="nav-link text-dark py-2"><i class="bi bi-pc-display me-2"></i> Manage PC</a>
+                <a href="{% url 'admin_booking' %}" class="nav-link text-dark py-2"><i class="bi bi-calendar-check-fill me-2"></i> Booking</a>
+                <a href="#" class="nav-link text-primary fw-bold py-2"><i class="bi bi-robot me-2"></i> Manage AI</a>
+                <a href="{% url 'admin_config' %}" class="nav-link text-dark py-2"><i class="bi bi-sliders me-2"></i> System Config</a>
+                <a href="{% url 'admin_report' %}" class="nav-link text-dark py-2"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reports</a>
+                <div class="border-top my-3"></div>
+                <a href="{% url 'admin_logout' %}" onclick="return confirm('ยืนยันออกจากระบบ?')" class="nav-link text-danger py-2"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
+            </nav>
+        </div>
+    </div>
+
+    <div id="page-content-wrapper" class="overflow-y-auto vh-100 flex-grow-1">
+        <div class="container-fluid p-4">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="fw-bold text-dark mb-1">🤖 Manage AI & Software</h3>
+                    <p class="text-muted small mb-0">จัดการรายการซอฟต์แวร์ และ AI Tools ภายในระบบ</p>
+                </div>
+>>>>>>> b0fc30493564651f0a09471542713232a07964bc
             </div>
         </div>
 
@@ -250,5 +278,58 @@
 </div>
 {% endblock %}
 {% block extra_scripts %}
+<<<<<<< HEAD
 <script src="{% static 'cklab/js/admin-software.js' %}?v={% now 'U' %}"></script>
+=======
+<script>
+    let softwareModal;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // ส่วนของ Modal
+        const modalEl = document.getElementById('softwareModal');
+        if(modalEl) softwareModal = new bootstrap.Modal(modalEl);
+
+        // ==========================================
+        // 🔍 ส่วนของระบบค้นหา (Search Filter)
+        // ==========================================
+        const searchInput = document.getElementById('softwareSearch');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const filterValue = this.value.toLowerCase(); // ข้อความที่พิมพ์ค้นหา
+                const tableRows = document.querySelectorAll('tbody tr'); // ดึงแถวในตารางทั้งหมด
+
+                tableRows.forEach(row => {
+                    // ข้ามแถวที่แสดงข้อความ "ยังไม่มีข้อมูล" (เช็คจาก colspan)
+                    if (row.querySelector('td[colspan]')) return;
+
+                    // ดึงข้อความในแถวนั้นๆ มาเช็ค
+                    const rowText = row.textContent.toLowerCase();
+                    
+                    // ถ้าข้อความในแถว มีคำที่ค้นหา ให้แสดงแถวนั้นไว้ ถ้าไม่มีให้ซ่อน
+                    if (rowText.includes(filterValue)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+
+    function openModal() {
+        softwareModal.show();
+    }
+
+    // ฟังก์ชันเลือกประเภท สลับ class active
+    function selectType(type, element) {
+        document.getElementById('editType').value = type;
+
+        document.querySelectorAll('.software-type-card').forEach(el => {
+            el.classList.remove('active', 'border-primary');
+        });
+
+        element.classList.add('active', 'border-primary');
+    }
+</script>
+>>>>>>> b0fc30493564651f0a09471542713232a07964bc
 {% endblock %}
