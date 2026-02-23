@@ -3,83 +3,69 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
+from ..models import Software
+from ..forms.software import SoftwareForm
 
-# นำเข้า Model
-from lab_management.models import Software
-
-# ✅ นำเข้า Form จากไฟล์ที่เราแยกไว้
-from lab_management.forms.software import SoftwareForm
-
-# ==========================================
-# 💻 Views
-# ==========================================
-
+# หน้าหลัก: แสดงตาราง Software ทั้งหมด และมีฟอร์มสำหรับเพิ่มข้อมูลใหม่
 class AdminSoftwareView(LoginRequiredMixin, View):
     def get(self, request):
-        # 1. ดึงข้อมูลซอฟต์แวร์ทั้งหมด
-        softwares = Software.objects.all().order_by('-id') # เรียงจากใหม่ไปเก่า
+        softwares = Software.objects.all().order_by('-id') # ดึงข้อมูลทั้งหมด
+        form = SoftwareForm() # สร้างฟอร์มเปล่า
         
-        # 2. นับสถิติเพื่อไปโชว์ในการ์ดด้านบน
+        # --- เพิ่มการนับจำนวนตรงนี้ ---
         total_count = softwares.count()
         ai_count = softwares.filter(type='AI').count()
         software_count = softwares.filter(type='Software').count()
-
-        context = {
+        
+        return render(request, 'cklab/admin/admin-software.html', {
             'softwares': softwares,
-            'total_count': total_count,
-            'ai_count': ai_count,
-            'software_count': software_count
-        }
-        return render(request, 'cklab/admin/admin-software.html', context)
+            'form': form,
+            'total_count': total_count,         # ส่งเลขรวม
+            'ai_count': ai_count,               # ส่งเลข AI
+            'software_count': software_count    # ส่งเลข Software ทั่วไป
+        })
 
     def post(self, request):
-        # จัดการกรณีค่าว่างของวันที่
-        mutable_post = request.POST.copy()
-        if mutable_post.get('expire_date') == '':
-            mutable_post['expire_date'] = None
-            
-        # สร้างรายการใหม่จากข้อมูลที่ส่งมาจาก Modal (แบบ POST)
-        form = SoftwareForm(mutable_post)
-
-        if form.is_valid():
-            form.save() # บันทึกลง Database ทันที
-            
-        return redirect('admin_software')
-
-
-class AdminSoftwareEditView(LoginRequiredMixin, View):
-    def get(self, request, pk):
-        # ดึงข้อมูล Software ตาม ID (pk) ถ้าไม่เจอให้แสดงหน้า 404
-        software = get_object_or_404(Software, pk=pk)
-        
-        # นำข้อมูลเก่ามาใส่ฟอร์ม เพื่อนำไปโชว์ใน HTML (form.name.value)
-        form = SoftwareForm(instance=software)
-        
-        return render(request, 'cklab/admin/admin-software-edit.html', {'form': form})
-
-    def post(self, request, pk):
-        # อัปเดตข้อมูลเก่า
-        software = get_object_or_404(Software, pk=pk)
-        
-        mutable_post = request.POST.copy()
-        if mutable_post.get('expire_date') == '':
-            mutable_post['expire_date'] = None
-            
-        form = SoftwareForm(mutable_post, instance=software)
-        
+        form = SoftwareForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('admin_software') # กลับไปหน้ารวมเมื่อเซฟเสร็จ
-            
-        # ถ้ากรอกข้อมูลไม่ถูกต้อง ให้โชว์หน้าเดิมพร้อมแจ้ง Error
-        return render(request, 'cklab/admin/admin-software-edit.html', {'form': form})
+            return redirect('admin_software')
+        
+        softwares = Software.objects.all()
+        return render(request, 'cklab/admin/admin-software.html', {
+            'softwares': softwares,
+            'form': form,
+            'total_count': softwares.count(),
+            'ai_count': softwares.filter(type='AI').count(),
+            'software_count': softwares.filter(type='Software').count(),
+        })
 
+# (ส่วน AdminSoftwareEditView และ AdminSoftwareDeleteView ปล่อยไว้เหมือนเดิมที่คุณเขียนมาเลยครับ ดีเยี่ยมแล้ว!)
 
+# หน้าแก้ไข: ดึงข้อมูลเดิมมาแสดงในฟอร์มเพื่อแก้ไข
+class AdminSoftwareEditView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        software = get_object_or_404(Software, pk=pk)
+        form = SoftwareForm(instance=software)
+        return render(request, 'cklab/admin/admin-software-edit.html', {
+            'form': form,
+            'software': software
+        })
+
+    def post(self, request, pk):
+        software = get_object_or_404(Software, pk=pk)
+        form = SoftwareForm(request.POST, instance=software)
+        if form.is_valid():
+            form.save()
+            return redirect('admin_software')
+        return render(request, 'cklab/admin/admin-software-edit.html', {
+            'form': form,
+            'software': software
+        })
+
+# ระบบลบข้อมูล: (ไม่มีหน้าเว็บแยก ทำงานเบื้องหลังแล้วเด้งกลับหน้าหลัก)
 class AdminSoftwareDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        # ลบข้อมูล
         software = get_object_or_404(Software, pk=pk)
         software.delete()
-        
-        # กลับไปหน้าจัดการ Software
         return redirect('admin_software')

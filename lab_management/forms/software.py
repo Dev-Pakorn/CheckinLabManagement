@@ -1,17 +1,14 @@
 # ลลิดา — Software Forms
-
 from django import forms
-from lab_management.models import Software
+from ..models import Software
 
 class SoftwareForm(forms.ModelForm):
     class Meta:
         model = Software
-        fields = ['name', 'version', 'type', 'expire_date']
-        
-        # กำหนด Widget เผื่อนำไป Render ด้วยคำสั่ง {{ form }} ในอนาคต
+        fields = ['name', 'version', 'type', 'expire_date'] # เอาแค่ฟิลด์ที่มีในโปรเจกต์
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ชื่อรายการ'}),
-            'version': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'เวอร์ชัน หรือ แพ็กเกจ'}),
-            'type': forms.Select(attrs={'class': 'form-select'}),
-            'expire_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'id': 'editName', 'placeholder': 'เช่น ChatGPT, Microsoft Office'}),
+            'version': forms.TextInput(attrs={'class': 'form-control', 'id': 'editVersion', 'placeholder': 'เช่น Plus, Pro, 2024'}),
+            'type': forms.Select(attrs={'class': 'form-select', 'id': 'editType'}),
+            'expire_date': forms.DateInput(attrs={'class': 'form-control', 'id': 'editExpire', 'type': 'date'}),
         }

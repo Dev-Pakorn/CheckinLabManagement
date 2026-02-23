@@ -30,7 +30,7 @@ class LoginView(auth_views.LoginView):
 
 class LogoutView(auth_views.LogoutView):
     # กำหนด URL Name ที่จะให้เด้งไปหลัง Logout (เดี๋ยวเราไปตั้งชื่อนี้ใน urls.py กัน)
-    next_page = 'login' 
+    next_page = 'admin_login' 
 
     def dispatch(self, request, *args, **kwargs):
         # ดึง SiteConfig ปัจจุบัน

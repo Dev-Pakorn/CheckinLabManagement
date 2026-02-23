@@ -4,46 +4,11 @@
 {% block title %}Edit Software - Admin Panel{% endblock %}
 
 {% block extra_head %}
-<link href="{% static 'cklab/css/admin.css' %}?v={% now 'U' %}" rel="stylesheet">
-<style>
-    /* บังคับไม่ให้เกิด Scroll ซ้อน และจัดการพื้นหลัง */
-    body { 
-        overflow: hidden; 
-        background-color: var(--gray-light);
-        font-family: 'Prompt', sans-serif;
-    }
-</style>
-{% endblock %}
+<link href="{% static 'cklab/css/admin.css' %}" rel="stylesheet">
+{% endblock extra_head %}
 
 {% block content %}
 <div class="d-flex" style="height: 100vh; width: 100vw; position: absolute; top:0; left:0;">
-<<<<<<< HEAD
-    
-    <div id="sidebar-container" class="shadow-sm">
-        <a href="{% url 'admin_monitor' %}" class="sidebar-brand">
-            <i class="bi bi-shield-lock me-2"></i>Admin Panel
-        </a>
-        <nav class="mt-3">
-            <a href="{% url 'admin_monitor' %}" class="sidebar-link"><i class="bi bi-grid-fill me-2"></i> Monitor</a>
-            <a href="#" class="sidebar-link"><i class="bi bi-pc-display me-2"></i> Manage PC</a>
-            <a href="#" class="sidebar-link"><i class="bi bi-calendar-check-fill me-2"></i> Booking</a>
-            <a href="{% url 'admin_software' %}" class="sidebar-link active"><i class="bi bi-robot me-2"></i> Manage AI</a>
-            <a href="#" class="sidebar-link"><i class="bi bi-sliders me-2"></i> System Config</a>
-            <a href="#" class="sidebar-link"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reports</a>
-            
-            <div class="border-top my-3 mx-2"></div>
-            
-            <form method="POST" action="{% url 'logout' %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-link sidebar-link text-danger w-100 text-start text-decoration-none">
-                    <i class="bi bi-box-arrow-right me-2"></i> Logout
-                </button>
-            </form>
-        </nav>
-    </div>
-
-    <div id="page-content-wrapper" class="overflow-y-auto vh-100 bg-light w-100">
-=======
 
     <div id="sidebar-container" class="shadow-sm">
         <div class="p-4">
@@ -62,7 +27,6 @@
     </div>
 
     <div id="page-content-wrapper" class="overflow-y-auto vh-100 flex-grow-1 bg-light">
->>>>>>> b0fc30493564651f0a09471542713232a07964bc
         <div class="container-fluid p-4 d-flex justify-content-center align-items-center" style="min-height: 100vh;">
             
             <div class="card border-0 shadow-sm rounded-4 w-100" style="max-width: 750px;">
@@ -90,13 +54,13 @@
                             <input type="hidden" id="editType" name="type" value="{{ form.type.value|default:'Software' }}">
                             
                             <div class="d-flex gap-3">
-                                <div id="card-Software" class="software-type-card flex-fill text-center p-4 rounded-4 border" onclick="selectType('Software', this)" style="cursor: pointer; transition: all 0.2s;">
+                                <div id="card-Software" class="software-type-card flex-fill text-center p-4 rounded-4 border" onclick="selectType('Software')" style="cursor: pointer; transition: all 0.2s;">
                                     <i class="bi bi-box-seam fs-1 mb-2 d-block text-primary"></i>
                                     <div class="fw-bold fs-5">ซอฟต์แวร์</div>
                                     <div class="text-muted small">โปรแกรมทั่วไป</div>
                                 </div>
 
-                                <div id="card-AI" class="software-type-card flex-fill text-center p-4 rounded-4 border" onclick="selectType('AI', this)" style="cursor: pointer; transition: all 0.2s;">
+                                <div id="card-AI" class="software-type-card flex-fill text-center p-4 rounded-4 border" onclick="selectType('AI')" style="cursor: pointer; transition: all 0.2s;">
                                     <i class="bi bi-cpu fs-1 mb-2 d-block text-success"></i>
                                     <div class="fw-bold fs-5">AI & Model</div>
                                     <div class="text-muted small">ปัญญาประดิษฐ์</div>
@@ -116,39 +80,33 @@
                     </form>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{% static 'cklab/js/admin-software.js' %}?v={% now 'U' %}"></script>
-
 <script>
     // เมื่อโหลดหน้าเว็บเสร็จ ให้ตรวจดูว่าข้อมูลเดิมคือ AI หรือ Software แล้วไฮไลท์ให้ถูกต้อง
     document.addEventListener('DOMContentLoaded', () => {
         const currentType = document.getElementById('editType').value;
-        const targetElement = document.getElementById('card-' + currentType);
-        if (targetElement) {
-            selectType(currentType, targetElement);
-        }
+        selectType(currentType);
     });
 
-    // ปรับปรุงฟังก์ชัน selectType ให้รองรับการเปลี่ยนสี UI ทันที
-    function selectType(type, element) {
-        // อัปเดตค่าใน input hidden
+    // ฟังก์ชันสำหรับคลิกเลือกการ์ดประเภท AI / Software
+    function selectType(type) {
         document.getElementById('editType').value = type;
         
-        // ล้างสีกรอบเก่าออกจากการ์ดทั้งหมด
-        document.querySelectorAll('.software-type-card').forEach(el => {
-            el.classList.remove('border-primary', 'border-2', 'bg-primary', 'bg-opacity-10', 'active');
-            el.classList.add('border-1');
-        });
+        // ล้างสีกรอบเก่าออกให้หมด
+        document.getElementById('card-Software').classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+        document.getElementById('card-AI').classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
         
-        // เติมสีให้กับการ์ดที่ถูกเลือก
-        if (element) {
-            element.classList.remove('border-1');
-            element.classList.add('border-primary', 'border-2', 'bg-primary', 'bg-opacity-10', 'active');
+        // เติมสีน้ำเงินให้กับการ์ดที่ถูกเลือก
+        if(type === 'Software') {
+            document.getElementById('card-Software').classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+        } else {
+            document.getElementById('card-AI').classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
         }
     }
 </script>
