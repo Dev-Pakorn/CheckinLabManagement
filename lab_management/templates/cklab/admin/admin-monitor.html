@@ -12,6 +12,24 @@
 
     <link href="{% static 'cklab/css/main.css' %}?v={% now 'U' %}" rel="stylesheet">
     <link href="{% static 'cklab/css/admin.css' %}?v={% now 'U' %}" rel="stylesheet">
+
+    <style>
+        /* บังคับไม่ให้เกิด Scroll ซ้อน */
+        body { 
+            overflow: hidden; 
+            background-color: var(--gray-light);
+            font-family: 'Prompt', sans-serif;
+        }
+        
+        /* ปรับแต่ง Table สำหรับหน้าจอจอง */
+        .booking-table th { background-color: #f8f9fa; color: #495057; font-weight: 600; }
+        .booking-table td { vertical-align: middle; color: #495057; font-size: 0.9rem; }
+
+        /* สไตล์เพิ่มเติมสำหรับฟอร์มใน Modal */
+        .form-label-sm { font-size: 0.85rem; font-weight: 600; color: #6c757d; margin-bottom: 4px; }
+        .modal-kiosk-input { border-radius: 8px; border: 1px solid #dee2e6; padding: 10px 12px; font-size: 0.95rem; }
+        .modal-kiosk-input:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1); }
+    </style>
 </head>
 <body>
     
@@ -25,13 +43,18 @@
             </a>
             <nav class="mt-3">
                 <a href="{% url 'admin_monitor' %}" class="sidebar-link active"><i class="bi bi-grid-fill me-2"></i> Monitor</a>
+                
                 <a href="#" class="sidebar-link"><i class="bi bi-pc-display me-2"></i> Manage PC</a>
                 <a href="#" class="sidebar-link"><i class="bi bi-calendar-check-fill me-2"></i> Booking</a>
+                
                 <a href="{% url 'admin_software' %}" class="sidebar-link"><i class="bi bi-robot me-2"></i> Manage AI</a>
+                
                 <a href="#" class="sidebar-link"><i class="bi bi-sliders me-2"></i> System Config</a>
                 <a href="#" class="sidebar-link"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reports</a>
+                
                 <div class="border-top my-3 mx-2"></div>
-                <form method="POST" action="{% url 'admin_logout' %}" class="d-inline">
+                
+                <form method="POST" action="{% url 'logout' %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-link sidebar-link text-danger w-100 text-start text-decoration-none">
                         <i class="bi bi-box-arrow-right me-2"></i> Logout
@@ -58,63 +81,78 @@
 
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-3">
-                    <div class="card bg-success text-white h-100 border-0 shadow-sm overflow-hidden position-relative">
+                    <div class="card bg-success text-white h-100 border-0 shadow-sm overflow-hidden position-relative" style="cursor: pointer;">
                         <div class="card-body p-3 position-relative z-1">
                             <div class="d-flex align-items-center mb-2">
-                                <div class="bg-white text-success rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;"><i class="bi bi-check-lg fs-5 fw-bold"></i></div>
-                                <div class="small text-white fw-bold text-uppercase">ว่าง (Available)</div>
+                                <div class="bg-white text-success rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-check-lg fs-5 fw-bold"></i>
+                                </div>
+                                <div class="small text-white fw-bold text-uppercase" style="letter-spacing: 0.5px;">ว่าง (Available)</div>
                             </div>
-                            <h2 class="fw-bold mb-0 text-white" id="count-available">0</h2>
+                            <h2 class="fw-bold mb-0 text-white" id="count-available" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">0</h2>
                         </div>
-                        <i class="bi bi-check-circle-fill position-absolute end-0 bottom-0 text-white" style="font-size: 6rem; opacity: 0.2; transform: rotate(-15deg);"></i>
+                        <i class="bi bi-check-circle-fill position-absolute end-0 bottom-0 text-white" 
+                           style="font-size: 6rem; opacity: 0.2; margin-bottom: -1rem; margin-right: -1rem; transform: rotate(-15deg);"></i>
                     </div>
                 </div>
+
                 <div class="col-6 col-md-3">
-                    <div class="card bg-danger text-white h-100 border-0 shadow-sm overflow-hidden position-relative">
+                    <div class="card bg-danger text-white h-100 border-0 shadow-sm overflow-hidden position-relative" style="cursor: pointer;">
                         <div class="card-body p-3 position-relative z-1">
                             <div class="d-flex align-items-center mb-2">
-                                <div class="bg-white text-danger rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;"><i class="bi bi-person-workspace fs-5 fw-bold"></i></div>
-                                <div class="small text-white fw-bold text-uppercase">ใช้งาน (In Use)</div>
+                                <div class="bg-white text-danger rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-person-workspace fs-5 fw-bold"></i>
+                                </div>
+                                <div class="small text-white fw-bold text-uppercase" style="letter-spacing: 0.5px;">ใช้งาน (In Use)</div>
                             </div>
-                            <h2 class="fw-bold mb-0 text-white" id="count-in_use">0</h2>
+                            <h2 class="fw-bold mb-0 text-white" id="count-in_use" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">0</h2>
                         </div>
-                        <i class="bi bi-people-fill position-absolute end-0 bottom-0 text-white" style="font-size: 6rem; opacity: 0.2; transform: rotate(-15deg);"></i>
+                        <i class="bi bi-people-fill position-absolute end-0 bottom-0 text-white" 
+                           style="font-size: 6rem; opacity: 0.2; margin-bottom: -1rem; margin-right: -1rem; transform: rotate(-15deg);"></i>
                     </div>
                 </div>
+
                 <div class="col-6 col-md-3">
-                    <div class="card bg-warning text-dark h-100 border-0 shadow-sm overflow-hidden position-relative">
+                    <div class="card bg-warning text-dark h-100 border-0 shadow-sm overflow-hidden position-relative" style="cursor: pointer;">
                         <div class="card-body p-3 position-relative z-1">
                             <div class="d-flex align-items-center mb-2">
-                                <div class="bg-white text-warning rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;"><i class="bi bi-bookmark-fill text-dark fs-5 fw-bold"></i></div>
-                                <div class="small text-dark fw-bold text-uppercase">จองแล้ว (Reserved)</div>
+                                <div class="bg-white text-warning rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-bookmark-fill text-dark fs-5 fw-bold"></i>
+                                </div>
+                                <div class="small text-dark fw-bold text-uppercase" style="letter-spacing: 0.5px;">จองแล้ว (Reserved)</div>
                             </div>
                             <h2 class="fw-bold mb-0 text-dark" id="count-reserved">0</h2>
                         </div>
-                        <i class="bi bi-clock-history position-absolute end-0 bottom-0 text-dark" style="font-size: 6rem; opacity: 0.15; transform: rotate(-15deg);"></i>
+                        <i class="bi bi-clock-history position-absolute end-0 bottom-0 text-dark" 
+                           style="font-size: 6rem; opacity: 0.15; margin-bottom: -1rem; margin-right: -1rem; transform: rotate(-15deg);"></i>
                     </div>
                 </div>
+
                 <div class="col-6 col-md-3">
-                    <div class="card bg-secondary text-white h-100 border-0 shadow-sm overflow-hidden position-relative">
+                    <div class="card bg-secondary text-white h-100 border-0 shadow-sm overflow-hidden position-relative" style="cursor: pointer;">
                         <div class="card-body p-3 position-relative z-1">
                             <div class="d-flex align-items-center mb-2">
-                                <div class="bg-white text-secondary rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;"><i class="bi bi-wrench-adjustable fs-5 fw-bold"></i></div>
-                                <div class="small text-white fw-bold text-uppercase">แจ้งซ่อม (Maint.)</div>
+                                <div class="bg-white text-secondary rounded-circle p-2 me-2 d-flex justify-content-center align-items-center shadow-sm" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-wrench-adjustable fs-5 fw-bold"></i>
+                                </div>
+                                <div class="small text-white fw-bold text-uppercase" style="letter-spacing: 0.5px;">แจ้งซ่อม (Maint.)</div>
                             </div>
-                            <h2 class="fw-bold mb-0 text-white" id="count-maintenance">0</h2>
+                            <h2 class="fw-bold mb-0 text-white" id="count-maintenance" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">0</h2>
                         </div>
-                        <i class="bi bi-tools position-absolute end-0 bottom-0 text-white" style="font-size: 6rem; opacity: 0.2; transform: rotate(-15deg);"></i>
+                        <i class="bi bi-tools position-absolute end-0 bottom-0 text-white" 
+                           style="font-size: 6rem; opacity: 0.2; margin-bottom: -1rem; margin-right: -1rem; transform: rotate(-15deg);"></i>
                     </div>
                 </div>
             </div>
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <ul class="nav nav-pills bg-white border rounded-pill p-1 shadow-sm d-inline-flex mb-0" style="font-size: 0.9rem;" role="tablist">
-                    <li class="nav-item">
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link active rounded-pill fw-bold px-4 py-2" id="tab-realtime" data-bs-toggle="pill" data-bs-target="#panel-realtime" type="button" role="tab" onclick="document.getElementById('realtime-filters').style.display='flex'">
                             <i class="bi bi-display me-2"></i>สถานะปัจจุบัน
                         </button>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link rounded-pill fw-bold px-4 py-2" id="tab-booking" data-bs-toggle="pill" data-bs-target="#panel-booking" type="button" role="tab" onclick="document.getElementById('realtime-filters').style.display='none'">
                             <i class="bi bi-calendar-week me-2"></i>คิวจองล่วงหน้า
                         </button>
@@ -130,7 +168,8 @@
                 </div>
             </div>
 
-            <div class="tab-content">
+            <div class="tab-content" id="monitorTabContent">
+                
                 <div class="tab-pane fade show active" id="panel-realtime" role="tabpanel">
                     <div class="row g-3" id="monitorGrid">
                         <div class="col-12 text-center py-5 text-muted">
@@ -158,12 +197,27 @@
                                         </tr>
                                     </thead>
                                     <tbody id="futureBookingTable">
+                                        <tr>
+                                            <td class="ps-4">24 ก.พ. 2026</td>
+                                            <td><i class="bi bi-clock text-muted me-1"></i> 09:00 - 12:00</td>
+                                            <td><span class="badge bg-primary rounded-pill px-3">PC-05</span></td>
+                                            <td><i class="bi bi-person text-muted me-1"></i> นายเรียนดี ศรีอุบล</td>
+                                            <td><span class="badge bg-warning text-dark border"><i class="bi bi-hourglass-split me-1"></i> รอใช้งาน</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="ps-4">25 ก.พ. 2026</td>
+                                            <td><i class="bi bi-clock text-muted me-1"></i> 13:00 - 16:00</td>
+                                            <td><span class="badge bg-primary rounded-pill px-3">PC-12</span></td>
+                                            <td><i class="bi bi-person text-muted me-1"></i> นางสาวขยัน อ่านหนังสือ</td>
+                                            <td><span class="badge bg-warning text-dark border"><i class="bi bi-hourglass-split me-1"></i> รอใช้งาน</span></td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -208,8 +262,8 @@
     </div>
 
     <div class="modal fade" id="checkInModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered"> <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="text-center py-4 bg-white border-bottom position-relative">
                     <img src="{% static 'cklab/img/ubulogo.png' %}" alt="Logo" class="mb-2" style="height: 60px;">
                     <h5 class="fw-bold text-primary mb-0">ลงชื่อเข้าใช้งานแทนผู้ใช้</h5>
@@ -223,24 +277,32 @@
                         <strong id="modalPcName" class="text-primary fs-5">Station: -</strong>
                     </div>
 
-                    <div class="bg-white border rounded-pill p-1 d-flex mb-4 shadow-sm">
-                        <button class="btn btn-primary rounded-pill flex-grow-1 fw-bold border-0" id="tab-internal" onclick="switchTab('internal')" style="transition: 0.2s;">
-                            <i class="bi bi-mortarboard-fill me-2"></i>นักศึกษา / บุคลากร
-                        </button>
-                        <button class="btn btn-light rounded-pill flex-grow-1 fw-bold text-muted border-0" id="tab-external" onclick="switchTab('external')" style="transition: 0.2s;">
-                            <i class="bi bi-building me-2"></i>บุคคลทั่วไป
-                        </button>
-                    </div>
+                    <ul class="nav nav-pills nav-fill mb-4 bg-white p-1 rounded-pill border shadow-sm" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active rounded-pill fw-bold" id="tab-internal" onclick="switchTab('internal')">
+                                <i class="bi bi-mortarboard-fill me-2"></i>นักศึกษา / บุคลากร
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link rounded-pill fw-bold" id="tab-external" onclick="switchTab('external')">
+                                <i class="bi bi-building me-2"></i>บุคคลทั่วไป
+                            </button>
+                        </li>
+                    </ul>
 
                     <div id="formInternal" class="animate-fade">
-                        <label class="form-label-sm ps-2">รหัสนักศึกษา / รหัส WiFi (UBU) <span class="text-danger">*</span></label>
-                        <div class="input-group shadow-sm mb-3">
-                            <span class="input-group-text bg-white border-end-0 ps-3"><i class="bi bi-person-badge text-primary"></i></span>
-                            <input type="text" class="form-control form-control-lg border-start-0 ps-0" id="ubuUser" placeholder="ระบุรหัสเพื่อตรวจสอบ">
-                            <button class="btn btn-check-kiosk px-4 fw-bold" type="button" onclick="verifyUBUUser()">ตรวจสอบ</button>
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-muted ps-2">รหัสบุคลากร / UBU Account</label>
+                                <div class="input-group shadow-sm mb-3">
+                                    <span class="input-group-text bg-white border-end-0 ps-3"><i class="bi bi-person-badge text-primary"></i></span>
+                                    <input type="text" class="form-control form-control-lg border-start-0 ps-0" id="ubuUser" placeholder="ระบุรหัสเพื่อตรวจสอบ">
+                                    <button class="btn btn-primary px-4 fw-bold" type="button" onclick="verifyUBUUser()">ตรวจสอบ</button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div id="internalVerifyCard" class="card border-0 shadow-sm p-3 d-none bg-white mb-3" style="border-radius: 12px;">
+                        <div id="internalVerifyCard" class="card border-0 shadow-sm p-3 d-none bg-white mb-3">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
                                     <i class="bi bi-person-check-fill fs-4"></i>
@@ -261,29 +323,52 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted ps-2">ประเภทผู้ใช้</label>
+                                <select class="form-select border-0 shadow-sm modal-kiosk-input" id="userType">
+                                    <option value="student" selected>นักศึกษา</option>
+                                    <option value="staff">บุคลากร / อาจารย์</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted ps-2">ชั้นปี (กรณีนักศึกษา)</label>
+                                <select class="form-select border-0 shadow-sm modal-kiosk-input" id="userYear">
+                                    <option value="">-- ระบุชั้นปี --</option>
+                                    <option value="1">ปี 1</option>
+                                    <option value="2">ปี 2</option>
+                                    <option value="3">ปี 3</option>
+                                    <option value="4">ปี 4</option>
+                                    <option value="ปีอื่นๆ">ปีอื่นๆ</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="formExternal" class="d-none animate-fade">
                         <div class="mb-3">
-                            <label class="form-label-sm ps-2">เลขบัตรประชาชน / Passport <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted ps-2">เลขบัตรประชาชน / Passport <span class="text-danger">*</span></label>
                             <div class="input-group shadow-sm">
                                 <span class="input-group-text bg-white border-end-0 ps-3"><i class="bi bi-card-heading text-primary"></i></span>
                                 <input type="text" id="extIdCard" class="form-control border-start-0 py-2" placeholder="ระบุหมายเลข">
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label-sm ps-2">ชื่อ - นามสกุล <span class="text-danger">*</span></label>
-                            <input type="text" id="extName" class="form-control modal-kiosk-input shadow-sm" placeholder="ระบุชื่อจริง">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label-sm ps-2">หน่วยงาน <span class="text-muted fw-normal small">(ถ้ามี)</span></label>
-                            <input type="text" id="extOrg" class="form-control modal-kiosk-input shadow-sm" placeholder="ระบุสังกัด">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted ps-2">ชื่อ - นามสกุล <span class="text-danger">*</span></label>
+                                <input type="text" id="extName" class="form-control modal-kiosk-input shadow-sm" placeholder="ระบุชื่อจริง">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted ps-2">หน่วยงาน <span class="text-muted fw-normal small">(ถ้ามี)</span></label>
+                                <input type="text" id="extOrg" class="form-control modal-kiosk-input shadow-sm" placeholder="ระบุสังกัด">
+                            </div>
                         </div>
                     </div>
 
                     <div class="mt-4 pt-3 border-top">
                         <button id="btnConfirm" onclick="confirmCheckIn()" class="btn btn-secondary w-100 py-3 fw-bold shadow-sm rounded-3" disabled>
-                            <i class="bi bi-check-circle-fill me-2"></i>ยืนยันและเช็คอินทันที
+                            <i class="bi bi-box-arrow-in-right me-2"></i>ยืนยันและเช็คอินทันที
                         </button>
                         <p class="text-center mt-3 mb-0 text-muted small">
                             <i class="bi bi-info-circle me-1"></i>ดำเนินการโดยแอดมิน: <strong>{{ request.user.username }}</strong>
