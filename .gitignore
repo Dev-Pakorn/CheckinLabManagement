@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+.venv/ 
+=======
 # Environment
 .env
 .venv/
@@ -15,3 +18,4 @@ db.sqlite3
 # OS
 Thumbs.db
 .DS_Store
+>>>>>>> 52e9462d0d6490bd18910b0f9d1db8b7400042d8
