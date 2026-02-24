@@ -1,7 +1,5 @@
 from django.urls import path
-from .views import kiosk, auth, monitor, manage_pc, software , report , config
-
-# (ในอนาคตถ้าเพื่อนทำไฟล์อื่นเสร็จ ให้มาเพิ่มตรงนี้ เช่น from .views import auth, monitor, booking)
+from .views import kiosk, auth, monitor, manage_pc, software , report , config , booking
 
 urlpatterns = [
     # 1. ฝั่งผู้ใช้งาน (User / Kiosk) - ผู้รับผิดชอบ: ปภังกร
@@ -11,11 +9,6 @@ urlpatterns = [
     path('api/status/<str:pc_id>/', kiosk.StatusView.as_view(), name='api_status'), 
     path('api/verify-user/', kiosk.VerifyUserAPIView.as_view(), name='api_verify_user'), 
     path('feedback/<str:pc_id>/<int:software_id>/', kiosk.FeedbackView.as_view(), name='kiosk_feedback'),
-
-    # ==============================================================
-    # ปิด Comment (#) โค้ดฝั่ง Admin ไว้ชั่วคราวเพื่อให้ makemigrations ผ่าน 
-    # (ถ้ายังไม่ปิด มันจะ Error หา LoginView ไม่เจอแบบเมื่อกี้เลยครับ)
-    # ==============================================================
 
     # 2. ระบบ Login + จัดการ Admin User - ผู้รับผิดชอบ: สถาพร (สำรอง โดย ภานุวัฒน์)
     path('admin-portal/login/', auth.LoginView.as_view(), name='login'), # สถาพร
@@ -29,9 +22,9 @@ urlpatterns = [
     path('admin-portal/checkin/<str:pc_id>/', monitor.AdminCheckinView.as_view(), name='admin_checkin'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
     path('admin-portal/checkout/<str:pc_id>/', monitor.AdminCheckoutView.as_view(), name='admin_checkout'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
     
-    # path('admin-portal/booking/', booking.AdminBookingView.as_view(), name='admin_booking'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
-    # path('admin-portal/booking/<int:pk>/', booking.AdminBookingDetailView.as_view(), name='admin_booking_detail'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
-    # path('admin-portal/booking/import/', booking.AdminImportBookingView.as_view(), name='admin_booking_import'), # อัษฎาวุธ  (สำรอง โดย ลลิดา)
+    path('admin-portal/booking/', booking.AdminBookingView.as_view(), name='admin_booking'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
+    path('admin-portal/booking/<int:pk>/', booking.AdminBookingDetailView.as_view(), name='admin_booking_detail'), # อัษฎาวุธ (สำรอง โดย ลลิดา)
+    path('admin-portal/booking/import/', booking.AdminImportBookingView.as_view(), name='admin_booking_import'), # อัษฎาวุธ  (สำรอง โดย ลลิดา)
     
     path('admin-portal/manage-pc/', manage_pc.AdminManagePcView.as_view(), name='admin_manage_pc'), # ณัฐกรณ์  (สำรอง โดย ลลิดา)
     path('admin-portal/manage-pc/add/', manage_pc.AdminAddPcView.as_view(), name='admin_add_pc'), # ณัฐกรณ์

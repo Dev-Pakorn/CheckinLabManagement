@@ -13,12 +13,12 @@
     <div id="sidebar-container">
         <a href="{% url 'admin_monitor' %}" class="sidebar-brand"><i class="bi bi-shield-lock me-2"></i>Admin Panel</a>
         <nav class="mt-3">
-            <a href="{% url 'admin_monitor' %}" class="nav-link-admin"><i class="bi bi-grid-fill"></i> Monitor</a>
-            <a href="/admin-portal/manage-pc/" class="nav-link-admin"><i class="bi bi-pc-display"></i> Manage PC</a>
-            <a href="/admin-portal/booking/" class="nav-link-admin"><i class="bi bi-calendar-check-fill"></i> Booking</a>
-            <a href="{% url 'admin_software' %}" class="nav-link-admin"><i class="bi bi-robot"></i> Manage AI</a>
-            <a href="{% url 'admin_config' %}" class="nav-link-admin active"><i class="bi bi-sliders"></i> System Config</a>
-            <a href="/admin-portal/report/" class="nav-link-admin"><i class="bi bi-file-earmark-bar-graph-fill"></i> Reports</a>
+            <a href="{% url 'admin_monitor' %}" class="sidebar-link"><i class="bi bi-grid-fill me-2"></i> Monitor</a>
+            <a href="{% url 'admin_manage_pc'%}" class="sidebar-link"><i class="bi bi-pc-display me-2"></i> Manage PC</a>
+            <a href="{% url 'admin_booking' %}" class="sidebar-link"><i class="bi bi-calendar-check-fill me-2"></i> Booking</a>
+            <a href="{% url 'admin_software' %}" class="sidebar-link"><i class="bi bi-robot me-2"></i> Manage AI</a>
+            <a href="{% url 'admin_config' %}" class="sidebar-link"><i class="bi bi-sliders me-2"></i> System Config</a>
+            <a href="{% url 'admin_report' %}" class="sidebar-link"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reports</a>
             
             <div class="border-top my-3 mx-3"></div>
             
