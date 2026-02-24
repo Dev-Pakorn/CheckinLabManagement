@@ -1,40 +1,84 @@
-# ภานุวัฒน์ — Config (SiteConfig) + Admin User Management
-
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
-
-# TODO: import render, redirect จาก django.shortcuts
-# TODO: ถ้าต้องการจัดการ Django User ให้ใช้ User จาก django.contrib.auth.models
-
-# TODO: Models ที่ต้องใช้จาก ..models
-#   - SiteConfig   → ดึงและแก้ไขการตั้งค่าระบบ (lab_name, is_open, announcement ฯลฯ)
-#   - AdminonDuty  → ดึงและแก้ไขข้อมูลเจ้าหน้าที่ประจำวัน
-
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import User
+from django.contrib import messages
+from ..models import SiteConfig, AdminonDuty
+from ..forms import SiteConfigForm, AdminUserForm
 
 class AdminConfigView(LoginRequiredMixin, View):
     def get(self, request):
-        pass
+        config = SiteConfig.objects.first()
+        if not config:
+            config = SiteConfig.objects.create(lab_name="CKLab")
+        
+        admins = User.objects.filter(is_staff=True).order_by('-is_superuser', 'username')
+        context = {'config': config, 'admins': admins}
+        return render(request, 'cklab/admin/admin-config.html', context)
 
     def post(self, request):
-        pass
+        form_type = request.POST.get('form_type')
+        config_instance = SiteConfig.objects.first()
 
+        if form_type == 'general_config':
+            form = SiteConfigForm(request.POST, instance=config_instance)
+            if form.is_valid():
+                config = form.save(commit=False)
+                
+                admin_name = request.POST.get('admin_on_duty_name')
+                if admin_name:
+                    duty_obj, _ = AdminonDuty.objects.get_or_create(id=1)
+                    duty_obj.admin_on_duty = admin_name
+                    duty_obj.contact_phone = request.POST.get('contact_phone', '')
+                    duty_obj.contact_email = request.POST.get('contact_email', '')
+                    duty_obj.save()
+                    config.admin_on_duty = duty_obj
+                
+                config.save()
+                messages.success(request, 'บันทึกการตั้งค่าและสถานะห้องเรียบร้อยแล้ว')
+            else:
+                messages.error(request, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
 
+        elif form_type == 'add_admin':
+            form = AdminUserForm(request.POST)
+            if form.is_valid():
+                user = form.save(commit=False)
+                user.set_password(form.cleaned_data['password'])
+                user.is_staff = True
+                if request.POST.get('role') == 'Super Admin':
+                    user.is_superuser = True
+                user.save()
+                messages.success(request, f'เพิ่มผู้ดูแล {user.username} เรียบร้อย')
+            else:
+                messages.error(request, 'ข้อมูลแอดมินไม่ถูกต้อง หรือ Username ซ้ำ')
+
+        return redirect('admin_config')
+
+class AdminUserDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        user_to_delete = get_object_or_404(User, pk=pk)
+        
+        # ป้องกันการลบตัวเองเพื่อความปลอดภัยของระบบ
+        if user_to_delete == request.user:
+            messages.error(request, "ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้")
+            return redirect('admin_config')
+            
+        if user_to_delete.is_superuser and not request.user.is_superuser:
+            messages.error(request, "คุณไม่มีสิทธิ์ลบ Super Admin")
+            return redirect('admin_config')
+
+        username = user_to_delete.username
+        user_to_delete.delete()
+        messages.success(request, f"ลบผู้ดูแลระบบ {username} เรียบร้อยแล้ว")
+        return redirect('admin_config')
+
+# --- นำ Stub Classes กลับมาเพื่อให้ระบบไม่ Error ตอน Import ---
 class AdminUserView(LoginRequiredMixin, View):
     def get(self, request):
-        pass
-
-    def post(self, request):
-        pass
-
+        return redirect('admin_config')
 
 class AdminUserEditView(LoginRequiredMixin, View):
     def get(self, request, pk):
         pass
-
-    def post(self, request, pk):
-        pass
-
-
-class AdminUserDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         pass
