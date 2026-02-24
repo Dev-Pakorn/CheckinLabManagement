@@ -19,7 +19,9 @@ class AdminMonitorView(LoginRequiredMixin, View):
             
             # ดึงข้อมูลคนที่กำลังใช้งานอยู่ (end_time เป็น Null) เพื่อเอาชื่อมาโชว์ที่เครื่อง
             active_logs = UsageLog.objects.filter(end_time__isnull=True)
-            active_users_map = {log.computer: log.user_name for log in active_logs}
+            
+            # ✅ แก้ไขบั๊ก ForeignKey: ดึงชื่อเครื่อง (log.computer.name) มาเป็น Key ของ Dictionary
+            active_users_map = {log.computer.name: log.user_name for log in active_logs if log.computer}
 
             pc_list = []
             for pc in computers:
@@ -28,16 +30,18 @@ class AdminMonitorView(LoginRequiredMixin, View):
                     'name': pc.name,
                     'status': pc.status,
                     'user_name': active_users_map.get(pc.name, ''), # ดึงชื่อคนมาใส่ถ้ามี
-                    'software': pc.Software.name if pc.Software else '-',
-                    'last_updated': pc.last_updated.strftime("%H:%M:%S") if pc.last_updated else '-'
+                    # ✅ แก้ไขบั๊กที่ 1: เปลี่ยนจาก pc.Software เป็น pc.installed_software ให้ตรงกับ Database
+                    'software': pc.installed_software.name if pc.installed_software else '-',
+                    # ✅ แก้ไขป้องกัน Error กรณีไม่มีฟิลด์ last_updated
+                    'last_updated': pc.last_updated.strftime("%H:%M:%S") if hasattr(pc, 'last_updated') and pc.last_updated else '-'
                 })
 
-            # นับจำนวนสรุป (✅ เพิ่ม reserved เข้าไป)
+            # นับจำนวนสรุป
             counts = {
                 'total': computers.count(),
                 'available': computers.filter(status='AVAILABLE').count(),
                 'in_use': computers.filter(status='IN_USE').count(),
-                'reserved': computers.filter(status='RESERVED').count(),  # <-- เพิ่มบรรทัดนี้
+                'reserved': computers.filter(status='RESERVED').count(),
                 'maintenance': computers.filter(status='MAINTENANCE').count(),
             }
 
@@ -78,8 +82,8 @@ class AdminCheckinView(LoginRequiredMixin, View):
             user_id=user_id,
             user_name=user_name,
             user_type='guest',
-            computer=pc.name
-            # start_time จะถูกบันทึกอัตโนมัติ (auto_now_add=True)
+            # ✅ แก้ไขบั๊กที่ 2: ForeignKey ต้องส่ง object (pc) เข้าไป ไม่ใช่ string (pc.name)
+            computer=pc 
         )
 
         return JsonResponse({'status': 'success', 'message': f'เช็คอินเครื่อง {pc_id} สำเร็จ'})
@@ -91,7 +95,8 @@ class AdminCheckoutView(LoginRequiredMixin, View):
         pc = get_object_or_404(Computer, name=pc_id)
         
         # 1. ค้นหาประวัติการใช้งานที่ยังไม่สิ้นสุดของเครื่องนี้
-        active_log = UsageLog.objects.filter(computer=pc.name, end_time__isnull=True).first()
+        # ✅ แก้ไขบั๊กที่ 3: ใช้ computer=pc (object) ในการ query
+        active_log = UsageLog.objects.filter(computer=pc, end_time__isnull=True).first()
         
         if active_log:
             # 2. ลงเวลาสิ้นสุด
