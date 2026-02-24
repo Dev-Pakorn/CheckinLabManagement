@@ -29,17 +29,13 @@ class AdminImportBookingView(LoginRequiredMixin, View):
     def post(self, request):
         csv_file = request.FILES.get('csv_file')
         
-        # ตรวจสอบว่าอัปโหลดไฟล์มาไหม และเป็น .csv หรือเปล่า
         if not csv_file or not csv_file.name.endswith('.csv'):
             messages.error(request, '❌ กรุณาอัปโหลดไฟล์นามสกุล .csv เท่านั้น')
             return redirect('admin_booking_import')
 
         try:
-            # จัดการอ่านไฟล์ (ใช้ utf-8-sig เพื่อรองรับภาษาไทยที่มี BOM)
             decoded_file = csv_file.read().decode('utf-8-sig')
             io_string = io.StringIO(decoded_file)
-            
-            # โครงสร้าง CSV ที่คาดหวัง: user_id, user_name, pc_name, date, start_time, end_time
             reader = csv.DictReader(io_string)
             
             success_count = 0
@@ -48,16 +44,18 @@ class AdminImportBookingView(LoginRequiredMixin, View):
                 computer = Computer.objects.filter(name=pc_name).first()
                 
                 if not computer:
-                    continue # หากใส่ชื่อเครื่องมาผิด ให้ข้ามรายการนี้ไป
+                    continue 
                     
-                # บันทึกข้อมูลลง Database
+                # ปรับให้ตรงกับ Model: ใช้ student_id
+                # และรวมวันที่/เวลาให้เป็น DateTimeField
+                start_dt = datetime.strptime(f"{row.get('date')} {row.get('start_time')}", '%Y-%m-%d %H:%M')
+                end_dt = datetime.strptime(f"{row.get('date')} {row.get('end_time')}", '%Y-%m-%d %H:%M')
+
                 Booking.objects.create(
-                    user_id=row.get('user_id'),
-                    user_name=row.get('user_name'),
+                    student_id=row.get('user_id'), # แมพ user_id ลง student_id
                     computer=computer,
-                    date=row.get('date'),
-                    start_time=row.get('start_time'),
-                    end_time=row.get('end_time'),
+                    start_time=timezone.make_aware(start_dt),
+                    end_time=timezone.make_aware(end_dt),
                     status='APPROVED'
                 )
                 success_count += 1
@@ -66,9 +64,7 @@ class AdminImportBookingView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f'❌ เกิดข้อผิดพลาดในการอ่านไฟล์: {str(e)}')
             
-        # เด้งกลับไปหน้าแรกหลังทำเสร็จ (ขยับแท็บให้ตรงกับฟังก์ชัน)
         return redirect('admin_booking')
-
 
 # ==========================================
 # 3. API สำหรับ JavaScript ดึงข้อมูลทั้งหมด
@@ -78,31 +74,15 @@ class AdminBookingDataAPIView(LoginRequiredMixin, View):
         try:
             # 1. ดึงข้อมูลเครื่องคอมพิวเตอร์
             pcs = Computer.objects.all().order_by('name')
-            print(f"📌 [DEBUG] Booking API: พบข้อมูล PC ทั้งหมด {pcs.count()} เครื่อง")
             
             pc_list = []
             for p in pcs:
-                sw_name = '-'
-                sw_type = 'General'
-                
-                # ดักจับทั้งกรณีที่เป็น ForeignKey และ ManyToManyField
-                try:
-                    sw_obj = getattr(p, 'Software', getattr(p, 'software', None))
-                    if sw_obj:
-                        if hasattr(sw_obj, 'all'): # กรณีเป็น ManyToManyField
-                            sws = sw_obj.all()
-                            if sws.exists():
-                                sw_name = ", ".join([s.name for s in sws])
-                                # ถ้ามีโปรแกรมไหนเป็น AI ให้ถือว่าเครื่องนี้เป็น AI
-                                sw_type = 'AI' if any(s.type == 'AI' for s in sws) else 'General'
-                        else: # กรณีเป็น ForeignKey ปกติ
-                            sw_name = sw_obj.name
-                            sw_type = sw_obj.type
-                except Exception as e:
-                    print(f"⚠️ [WARNING] PC '{p.name}' ดึงข้อมูล Software ไม่ได้: {e}")
+                # เรียกใช้ฟิลด์ Software (S ตัวใหญ่) ตาม Model
+                sw_name = p.Software.name if p.Software else '-'
+                sw_type = p.Software.type if p.Software else 'General'
 
                 pc_list.append({
-                    'id': p.name, # ใช้ชื่อเครื่องเป็น ID สำหรับ Value ใน Dropdown
+                    'id': p.name, 
                     'name': p.name,
                     'status': p.status,
                     'software_name': sw_name,
@@ -114,33 +94,19 @@ class AdminBookingDataAPIView(LoginRequiredMixin, View):
             sw_list = [{'id': s.id, 'name': s.name, 'type': s.type} for s in softwares]
             
             # 3. ดึงข้อมูลรายการจอง
-            bookings = Booking.objects.all().order_by('-date', '-start_time')
+            bookings = Booking.objects.all().order_by('-start_time')
             booking_list = []
             for b in bookings:
-                sw_name_booking = '-'
-                if b.computer:
-                    try:
-                        b_sw_obj = getattr(b.computer, 'Software', getattr(b.computer, 'software', None))
-                        if b_sw_obj:
-                            if hasattr(b_sw_obj, 'all'):
-                                sws = b_sw_obj.all()
-                                if sws.exists():
-                                    sw_name_booking = ", ".join([s.name for s in sws])
-                            else:
-                                sw_name_booking = b_sw_obj.name
-                    except:
-                        pass
-
                 booking_list.append({
                     'id': b.id,
-                    'user_id': b.user_id,
-                    'user_name': b.user_name,
+                    'user_id': b.student_id, # ตามชื่อฟิลด์ใน Model
+                    'user_name': b.student_id, # เนื่องจาก Model Booking ไม่มี user_name จึงใช้รหัสแทน
                     'pc_name': b.computer.name if b.computer else '-',
-                    'date': b.date.strftime('%Y-%m-%d') if b.date else '',
+                    'date': b.start_time.strftime('%Y-%m-%d') if b.start_time else '',
                     'start_time': b.start_time.strftime('%H:%M') if b.start_time else '',
                     'end_time': b.end_time.strftime('%H:%M') if b.end_time else '',
                     'status': b.status,
-                    'software': sw_name_booking
+                    'software': b.computer.Software.name if b.computer and b.computer.Software else '-'
                 })
                 
             return JsonResponse({
@@ -150,9 +116,7 @@ class AdminBookingDataAPIView(LoginRequiredMixin, View):
                 'bookings': booking_list
             })
         except Exception as e:
-            print(f"❌ [ERROR] Booking API: {str(e)}")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
 
 # ==========================================
 # 4. API สำหรับเพิ่มการจอง (จาก Modal)
@@ -164,19 +128,20 @@ class AdminBookingAddAPIView(LoginRequiredMixin, View):
             pc_name = data.get('pc_name')
             computer = get_object_or_404(Computer, name=pc_name)
             
+            # รวมวันที่และเวลา
+            start_dt = datetime.strptime(f"{data.get('date')} {data.get('start_time')}", '%Y-%m-%d %H:%M')
+            end_dt = datetime.strptime(f"{data.get('date')} {data.get('end_time')}", '%Y-%m-%d %H:%M')
+
             Booking.objects.create(
-                user_id=data.get('user_id'),
-                user_name=data.get('user_name'),
+                student_id=data.get('user_id'), # ตาม Model
                 computer=computer,
-                date=data.get('date'),
-                start_time=data.get('start_time'),
-                end_time=data.get('end_time'),
+                start_time=timezone.make_aware(start_dt),
+                end_time=timezone.make_aware(end_dt),
                 status='APPROVED'
             )
             return JsonResponse({'status': 'success', 'message': 'บันทึกสำเร็จ'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
 
 # ==========================================
 # 5. API สำหรับเปลี่ยนสถานะ / ยกเลิกการจอง
@@ -187,23 +152,13 @@ class AdminBookingStatusAPIView(LoginRequiredMixin, View):
             booking = get_object_or_404(Booking, id=pk)
             data = json.loads(request.body)
             new_status = data.get('status')
-            
             if new_status:
                 booking.status = new_status
                 booking.save()
-                
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-
-# ==========================================
-# 6. คลาสจำลองสำหรับป้องกัน Error จาก __init__.py 
-# (ไม่ได้ใช้งานแล้วเพราะใช้ Modal แทน)
-# ==========================================
 class AdminBookingDetailView(LoginRequiredMixin, View):
-    def get(self, request, pk):
-        pass
-
-    def post(self, request, pk):
-        pass
+    def get(self, request, pk): pass
+    def post(self, request, pk): pass
