@@ -7,36 +7,23 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
-    <link href="{% static 'cklab/css/main.css' %}" rel="stylesheet">
-    <link href="{% static 'cklab/css/admin.css' %}" rel="stylesheet"> 
-    
-    <style>
-        .soft-card { cursor: pointer; transition: all 0.2s ease-in-out; border: 2px solid #f8f9fa; }
-        .soft-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #dee2e6; }
-        .soft-card.active { border-color: #0d6efd !important; background-color: #f0f8ff !important; }
-        .soft-card.active .text-muted { color: #0d6efd !important; }
-        
-        /* เพิ่ม CSS สำหรับการล็อคการ์ด */
-        .soft-card.locked { background-color: #f8f9fa; opacity: 0.5; pointer-events: none; border-color: #e9ecef; }
-        .soft-card.locked .text-muted { color: #adb5bd !important; }
-        
-        .hidden-checkbox { display: none; }
-    </style>
+    <link href="{% static 'cklab/css/main.css' %}?v={% now 'U' %}" rel="stylesheet">
+    <link href="{% static 'cklab/css/admin.css' %}?v={% now 'U' %}" rel="stylesheet">
 </head>
 <body class="bg-light">
 
     <div class="d-flex">
-        <div id="sidebar-container">
-            <a href="#" class="sidebar-brand"><i class="bi bi-shield-lock me-2"></i>Admin Panel</a>
+        <div id="sidebar-container" class="theme-light border-end">
+            <a href="{% url 'admin_monitor' %}" class="sidebar-brand"><i class="bi bi-shield-lock me-2"></i>Admin Panel</a>
             <nav class="mt-3">
-                <a href="#" class="nav-link-admin"><i class="bi bi-grid-fill"></i> Monitor</a>
+                <a href="{% url 'admin_monitor' %}" class="nav-link-admin"><i class="bi bi-grid-fill"></i> Monitor</a>
                 <a href="{% url 'admin_manage_pc' %}" class="nav-link-admin active"><i class="bi bi-pc-display"></i> Manage PC</a>
-                <a href="#" class="nav-link-admin"><i class="bi bi-calendar-check-fill"></i> Booking</a>
-                <a href="#" class="nav-link-admin"><i class="bi bi-robot"></i> Manage AI</a>
-                <a href="#" class="nav-link-admin"><i class="bi bi-sliders"></i> System Config</a>
-                <a href="#" class="nav-link-admin"><i class="bi bi-file-earmark-bar-graph-fill"></i> Reports</a>
+                <a href="{% url 'admin_booking' %}" class="nav-link-admin"><i class="bi bi-calendar-check-fill"></i> Booking</a>
+                <a href="{% url 'admin_software' %}" class="nav-link-admin"><i class="bi bi-robot"></i> Manage AI</a>
+                <a href="{% url 'admin_config' %}" class="nav-link-admin"><i class="bi bi-sliders"></i> System Config</a>
+                <a href="{% url 'admin_report' %}" class="nav-link-admin"><i class="bi bi-file-earmark-bar-graph-fill"></i> Reports</a>
                 <div class="border-top my-3 mx-3"></div>
-                <form action="#" method="POST" class="d-inline">
+                <form action="{% url 'logout' %}" method="POST" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="nav-link-admin text-danger border-0 bg-transparent w-100 text-start" onclick="return confirm('ยืนยันออกจากระบบ?');">
                         <i class="bi bi-box-arrow-right"></i> Logout
@@ -56,6 +43,17 @@
                 </button>
             </div>
 
+            {% if messages %}
+                <div class="mb-3">
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -73,7 +71,7 @@
                             <tbody>
                                 {% for pc in computers %}
                                 <tr>
-                                    <td class="ps-4 py-3">{{ pc.id }}</td>
+                                    <td class="ps-4 py-3 fw-bold text-muted">#{{ forloop.counter }}</td>
                                     <td><span class="fw-bold text-dark">{{ pc.name }}</span></td>
                                     <td>
                                         {% if pc.status == 'AVAILABLE' %}<span class="badge bg-success">ว่าง</span>
@@ -84,7 +82,7 @@
                                     </td>
                                     <td>
                                         {% if pc.installed_software and pc.installed_software.type == 'AI' %}
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-robot"></i> AI</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-robot"></i> AI Workstation</span>
                                         {% else %}
                                             <span class="badge bg-light text-dark border"><i class="bi bi-cpu"></i> General</span>
                                         {% endif %}
@@ -173,24 +171,34 @@
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted mb-2">เลือก Software / AI ที่ติดตั้ง <span class="fw-normal text-muted fst-italic ms-2 small">(เลือกได้สูงสุด 1 รายการ)</span></label>
                             <div class="card bg-white border shadow-sm rounded-3">
-                                <div class="card-body p-2 custom-scrollbar" style="max-height: 250px; overflow-y: auto;">
+                                <div class="card-body p-3 custom-scrollbar" style="max-height: 280px; overflow-y: auto; background-color: #f8f9fa;">
                                     <div class="row g-2">
-                                        <div class="col-12">
-                                            <label class="soft-card p-2 rounded d-flex align-items-center mb-0 w-100" onclick="selectCard(this)">
-                                                <input type="radio" name="software_id" value="" class="hidden-checkbox" id="sw_none" data-sw-type="None" checked>
-                                                <div class="soft-card-content flex-grow-1 ms-2">
-                                                    <span class="fw-bold">ไม่มีการติดตั้งซอฟต์แวร์พิเศษ</span>
-                                                </div>
-                                            </label>
-                                        </div>
-
+                                        
                                         {% for sw in softwares %}
                                         <div class="col-12">
-                                            <label class="soft-card p-2 rounded d-flex align-items-center mb-0 w-100" onclick="selectCard(this)">
+                                            <label class="soft-card p-3 border rounded-3 d-flex align-items-center mb-0 w-100 shadow-sm" onclick="selectCard(this)">
                                                 <input type="radio" name="software_id" value="{{ sw.id }}" class="hidden-checkbox" id="sw_{{ sw.id }}" data-sw-type="{{ sw.type }}">
-                                                <div class="soft-card-content flex-grow-1 ms-2">
-                                                    <span class="d-block fw-bold">{{ sw.name }} <span class="badge bg-light text-dark border">{{ sw.get_type_display }}</span></span>
+                                                
+                                                <div class="icon-box me-3 rounded-circle d-flex align-items-center justify-content-center {% if sw.type == 'AI' %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-white border shadow-sm text-secondary{% endif %}" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                                                    {% if sw.type == 'AI' %}<i class="bi bi-robot"></i>{% else %}<i class="bi bi-box-seam"></i>{% endif %}
+                                                </div>
+
+                                                <div class="soft-card-content flex-grow-1">
+                                                    <span class="d-flex align-items-center fw-bold text-dark mb-1">
+                                                        {{ sw.name }} 
+                                                        {% if sw.type == 'AI' %}
+                                                            <span class="badge bg-primary text-white ms-2" style="font-size: 0.7rem;"><i class="bi bi-stars"></i> AI Tool</span>
+                                                        {% else %}
+                                                            <span class="badge bg-light text-dark border ms-2" style="font-size: 0.7rem;">General</span>
+                                                        {% endif %}
+                                                    </span>
                                                     <small class="text-muted">เวอร์ชัน: {{ sw.version }}</small>
+                                                </div>
+
+                                                <div class="status-icon fs-4">
+                                                    <i class="bi bi-circle text-muted opacity-25 icon-default"></i>
+                                                    <i class="bi bi-check-circle-fill icon-active"></i>
+                                                    <i class="bi bi-lock-fill icon-locked"></i>
                                                 </div>
                                             </label>
                                         </div>
@@ -216,43 +224,34 @@
     <script>
         const myModal = new bootstrap.Modal(document.getElementById('pcModal'));
 
-        // ฟังก์ชันใหม่: อัปเดตสถานะการล็อคของการ์ด Software ตามประเภท PC
         function refreshSoftwareState() {
             const pcType = document.getElementById('editPcType').value;
             const radios = document.querySelectorAll('input[name="software_id"]');
             
             radios.forEach(radio => {
-                if (radio.id === 'sw_none') return; // ข้ามตัวเลือก "ไม่มีซอฟต์แวร์"
-                
-                const swType = radio.getAttribute('data-sw-type');
                 const card = radio.closest('.soft-card');
                 
-                // กฎ: ถ้าเลือกเครื่อง General จะไม่สามารถเลือก AI ได้
-                if (pcType === 'General' && swType === 'AI') {
+                // ✅ กฎใหม่: 
+                // - ถ้าเป็น General (ใช้งานทั่วไป) ให้ล็อค "ทุกตัว" (isLocked = true)
+                // - ถ้าเป็น AI ให้ "ไม่ล็อคอะไรเลย" เลือกได้ทั้งหมด (isLocked = false)
+                let isLocked = (pcType === 'General');
+
+                if (isLocked) {
                     card.classList.add('locked');
                     card.classList.remove('active');
-                    
-                    // หากผู้ใช้เผลอกดค้างไว้ ให้บังคับเปลี่ยนกลับไปที่ 'sw_none'
-                    if (radio.checked) {
-                        radio.checked = false;
-                        const noneOption = document.getElementById('sw_none');
-                        noneOption.checked = true;
-                        noneOption.closest('.soft-card').classList.add('active');
-                    }
+                    radio.checked = false; // ยกเลิกการเลือกทันที
                 } else {
-                    card.classList.remove('locked');
+                    card.classList.remove('locked'); // ปลดล็อคทั้งหมด
                 }
             });
         }
 
-        // อัปเดตฟังก์ชันนี้ ให้เช็คสถานะ Locked ก่อนทำการ Active
         function selectCard(element) {
-            if (element.classList.contains('locked')) return; // ถ้าล็อคอยู่ ห้ามกด
+            if (element.classList.contains('locked')) return; 
 
             document.querySelectorAll('.soft-card').forEach(card => card.classList.remove('active'));
             element.classList.add('active');
             
-            // ให้ Radio Button ทำงานเมื่อกดที่ Card
             const radio = element.querySelector('input[type="radio"]');
             if(radio) radio.checked = true;
         }
@@ -263,12 +262,11 @@
             document.getElementById('editPcName').value = '';
             document.getElementById('editPcStatus').value = 'AVAILABLE';
             
-            // ตั้งค่าเริ่มต้นเป็น General
             document.getElementById('editPcType').value = 'General';
             
-            document.getElementById('sw_none').checked = true;
+            // ล้างการเลือก
             document.querySelectorAll('.soft-card').forEach(card => card.classList.remove('active'));
-            document.getElementById('sw_none').closest('.soft-card').classList.add('active');
+            document.querySelectorAll('input[name="software_id"]').forEach(radio => radio.checked = false);
             
             refreshSoftwareState();
             myModal.show();
@@ -281,10 +279,15 @@
             document.getElementById('editPcName').value = name;
             document.getElementById('editPcStatus').value = status;
             
-            // ตั้งค่า Dropdown ให้ตรงกับประเภท Software ในเครื่อง
-            document.getElementById('editPcType').value = (softwareType === 'AI') ? 'AI' : 'General';
+            // เซ็ต Dropdown ให้เป็น AI ถ้ามี Software ติดตั้งอยู่
+            document.getElementById('editPcType').value = softwareId ? 'AI' : 'General';
             
+            // ล้างการเลือกเก่า
             document.querySelectorAll('.soft-card').forEach(card => card.classList.remove('active'));
+            document.querySelectorAll('input[name="software_id"]').forEach(radio => radio.checked = false);
+            
+            // ปลดล็อคและเลือก Software ที่มีอยู่
+            refreshSoftwareState();
             
             if (softwareId) {
                 let radio = document.getElementById('sw_' + softwareId);
@@ -292,15 +295,23 @@
                     radio.checked = true;
                     radio.closest('.soft-card').classList.add('active'); 
                 }
-            } else {
-                document.getElementById('sw_none').checked = true;
-                document.getElementById('sw_none').closest('.soft-card').classList.add('active');
             }
             
-            // สั่งอัปเดตการล็อค
-            refreshSoftwareState();
             myModal.show();
         }
+
+        // ดักจับการกดบันทึก ถ้าเป็น AI Workstation ต้องบังคับให้เลือกโปรแกรม
+        document.getElementById('pcForm').addEventListener('submit', function(e) {
+            const pcType = document.getElementById('editPcType').value;
+            const checkedRadio = document.querySelector('input[name="software_id"]:checked');
+            
+            if (pcType === 'AI') {
+                if (!checkedRadio) {
+                    e.preventDefault(); 
+                    alert('⚠️ สำหรับเครื่อง AI Workstation กรุณาเลือก Software/AI อย่างน้อย 1 รายการก่อนบันทึกครับ');
+                }
+            }
+        });
     </script>
 </body>
 </html>
