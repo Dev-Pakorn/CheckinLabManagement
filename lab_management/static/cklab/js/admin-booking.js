@@ -360,3 +360,53 @@ async function updateStatus(bookingId, newStatus) {
         else alert(`ข้อผิดพลาด: ${result.message}`);
     } catch (error) { alert("อัปเดตสถานะไม่สำเร็จ"); }
 }
+
+// ==========================================
+// 5. EXPORT / IMPORT CSV TEMPLATE
+// ==========================================
+function downloadBookingCSVTemplate() {
+    // 1. กำหนดหัวคอลัมน์เป็น "ภาษาไทย" ให้ตรงกับ Backend เป๊ะๆ
+    const headers = [
+        "วันที่", 
+        "เวลา", 
+        "ผู้จอง", 
+        "เครื่อง", 
+        "Software / AI ที่จอง"
+    ];
+
+    // 2. สร้างข้อมูลตัวอย่าง (Sample Rows)
+    const sampleRows = [
+        ["17/01/2026", "09:00 - 10:30", "66123456", "PC-01", "ChatGPT"],
+        ["18/01/2026", "13:00 - 15:00", "staff001", "PC-05", "Canva"],
+        ["19/01/2026", "10:00 - 11:00", "guest999", "PC-02", "-"]
+    ];
+
+    // 3. รวม Header กับข้อมูลเข้าด้วยกัน
+    // ใส่ BOM (\uFEFF) ไว้หน้าสุด เพื่อบังคับให้ Excel เปิดไฟล์แล้วอ่านภาษาไทยออกทันที
+    let csvContent = "\uFEFF" + headers.join(",") + "\n";
+    
+    // วนลูปจัดการข้อมูลแต่ละแถว
+    sampleRows.forEach(row => {
+        const safeRow = row.map(cell => {
+            // ถ้าข้อมูลมีเครื่องหมายคอมม่า (,) ให้ใส่ Double Quotes ครอบไว้
+            if (cell && String(cell).includes(',')) {
+                return `"${cell}"`;
+            }
+            return cell;
+        });
+        csvContent += safeRow.join(",") + "\n";
+    });
+
+    // 4. สั่งให้เบราว์เซอร์ดาวน์โหลดไฟล์ลงเครื่อง
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Booking_Import_Template.csv"); 
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}

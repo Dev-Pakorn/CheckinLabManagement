@@ -55,6 +55,15 @@
 
     <div class="flex-grow-1 p-4" style="height: 100vh; overflow-y: auto;">
         
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <a href="{% url 'admin_booking' %}" class="text-decoration-none text-muted mb-2 d-inline-block">
@@ -65,7 +74,7 @@
             </div>
             
             <div>
-                <button onclick="downloadCSVTemplate()" class="btn btn-outline-secondary shadow-sm">
+                <button onclick="downloadBookingCSVTemplate()" class="btn btn-outline-secondary shadow-sm">
                     <i class="bi bi-download me-1"></i> ดาวน์โหลดไฟล์ตัวอย่าง (Template)
                 </button>
             </div>
@@ -89,12 +98,12 @@
 
                             <div class="alert alert-info border-0 bg-opacity-10 small">
                                 <strong><i class="bi bi-info-circle me-1"></i> คำแนะนำ:</strong><br>
-                                คอลัมน์ในไฟล์ CSV ต้องประกอบด้วย: 
-                                <code>user_id</code>, <code>date</code> (YYYY-MM-DD), <code>time_slot</code>, <code>pc_id</code>
+                                คอลัมน์บรรทัดแรกในไฟล์ CSV ต้องเป็นภาษาไทยตามนี้เป๊ะๆ: <br>
+                                <code>วันที่</code>, <code>เวลา</code>, <code>ผู้จอง</code>, <code>เครื่อง</code>, <code>Software / AI ที่จอง</code>
                             </div>
 
                             <div class="d-grid mt-4">
-                                <button type="submit" class="btn btn-success py-3 fw-bold fs-5 shadow-sm rounded-3">
+                                <button type="submit" class="btn btn-success py-3 fw-bold fs-5 shadow-sm rounded-3" onclick="return confirm('ยืนยันการนำเข้าข้อมูล?');">
                                     <i class="bi bi-cloud-upload-fill me-2"></i> เริ่มนำเข้าข้อมูล
                                 </button>
                             </div>
@@ -112,14 +121,31 @@
 {% block extra_scripts %}
 <script>
     // ฟังก์ชันสร้างและดาวน์โหลดไฟล์ Template 
-    function downloadCSVTemplate() {
-        const csvContent = "user_id,date,time_slot,pc_id\n66123456,2026-03-01,09:00-10:30,PC-01\nsomchai.r,2026-03-01,13:30-15:00,PC-05";
-        const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
+    function downloadBookingCSVTemplate() {
+        const headers = ["วันที่", "เวลา", "ผู้จอง", "เครื่อง", "Software / AI ที่จอง"];
+        const sampleRows = [
+            ["17/01/2026", "09:00 - 10:30", "66123456", "PC-01", "ChatGPT"],
+            ["18/01/2026", "13:30 - 15:00", "somchai.r", "PC-05", "Canva"]
+        ];
+
+        let csvContent = "\uFEFF" + headers.join(",") + "\n";
+        
+        sampleRows.forEach(row => {
+            const safeRow = row.map(cell => {
+                if (cell && String(cell).includes(',')) return `"${cell}"`;
+                return cell;
+            });
+            csvContent += safeRow.join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
         link.setAttribute("href", url);
-        link.setAttribute("download", "booking_template.csv");
+        link.setAttribute("download", "Booking_Import_Template.csv");
         link.style.visibility = 'hidden';
+        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

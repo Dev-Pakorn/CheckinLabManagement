@@ -31,7 +31,7 @@ class AdminImportBookingView(LoginRequiredMixin, View):
         
         if not csv_file or not csv_file.name.endswith('.csv'):
             messages.error(request, '❌ กรุณาอัปโหลดไฟล์นามสกุล .csv เท่านั้น')
-            return redirect('admin_booking_import')
+            return redirect('admin_booking')
 
         try:
             decoded_file = csv_file.read().decode('utf-8-sig')
@@ -40,27 +40,51 @@ class AdminImportBookingView(LoginRequiredMixin, View):
             
             success_count = 0
             for row in reader:
-                pc_name = row.get('pc_name')
-                computer = Computer.objects.filter(name=pc_name).first()
-                
-                if not computer:
-                    continue 
-                    
-                # ปรับให้ตรงกับ Model: ใช้ student_id
-                # และรวมวันที่/เวลาให้เป็น DateTimeField
-                start_dt = datetime.strptime(f"{row.get('date')} {row.get('start_time')}", '%Y-%m-%d %H:%M')
-                end_dt = datetime.strptime(f"{row.get('date')} {row.get('end_time')}", '%Y-%m-%d %H:%M')
+                # 1. อ่านข้อมูลจากหัวคอลัมน์ภาษาไทย
+                date_str = row.get('วันที่', '').strip()
+                time_str = row.get('เวลา', '').strip()
+                user_id = row.get('ผู้จอง', '').strip()
+                pc_name = row.get('เครื่อง', '').strip()
+                software_name = row.get('Software / AI ที่จอง', '').strip() # ดึงมาเผื่อไว้ (แต่อิงตาม PC เป็นหลัก)
 
+                # ถ้าข้อมูลสำคัญมาไม่ครบ ให้ข้ามไปแถวถัดไป
+                if not user_id or not pc_name or not date_str or not time_str:
+                    continue
+                    
+                # 2. ค้นหาเครื่องคอมพิวเตอร์จากฐานข้อมูล
+                computer = Computer.objects.filter(name=pc_name).first()
+                if not computer:
+                    continue # ถ้าไม่เจอชื่อเครื่องในระบบ ให้ข้ามไป
+                    
+                # 3. จัดการแยกเวลาเข้า-ออก และแปลงเป็น DateTime
+                try:
+                    times = [t.strip() for t in time_str.split('-')]
+                    start_t = times[0]
+                    end_t = times[1] if len(times) > 1 else start_t
+                    
+                    # รองรับวันที่ทั้งแบบ DD/MM/YYYY และ YYYY-MM-DD
+                    if '/' in date_str:
+                        d_obj = datetime.strptime(date_str, '%d/%m/%Y')
+                    else:
+                        d_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                        
+                    date_fmt = d_obj.strftime('%Y-%m-%d')
+                    start_dt = timezone.make_aware(datetime.strptime(f"{date_fmt} {start_t}", '%Y-%m-%d %H:%M'))
+                    end_dt = timezone.make_aware(datetime.strptime(f"{date_fmt} {end_t}", '%Y-%m-%d %H:%M'))
+                except Exception:
+                    continue # ข้ามถ้ารูปแบบวันที่หรือเวลาพิมพ์มาผิด
+
+                # 4. บันทึกข้อมูลลงฐานข้อมูลการจอง
                 Booking.objects.create(
-                    student_id=row.get('user_id'), # แมพ user_id ลง student_id
+                    student_id=user_id,
                     computer=computer,
-                    start_time=timezone.make_aware(start_dt),
-                    end_time=timezone.make_aware(end_dt),
-                    status='APPROVED'
+                    start_time=start_dt,
+                    end_time=end_dt,
+                    status='APPROVED' # ตั้งให้เป็นอนุมัติทันทีที่นำเข้า
                 )
                 success_count += 1
                 
-            messages.success(request, f'✅ นำเข้าข้อมูลสำเร็จ {success_count} รายการ')
+            messages.success(request, f'✅ นำเข้าข้อมูลการจองสำเร็จ {success_count} รายการ')
         except Exception as e:
             messages.error(request, f'❌ เกิดข้อผิดพลาดในการอ่านไฟล์: {str(e)}')
             
