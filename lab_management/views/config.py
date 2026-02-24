@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.contrib import messages
 from ..models import SiteConfig, AdminonDuty
-from ..forms import SiteConfigForm, AdminUserForm
+from ..forms import SiteConfigForm, AdminUserForm, AdminUserEditForm # เพิ่ม AdminUserEditForm เข้ามา
 
 class AdminConfigView(LoginRequiredMixin, View):
     def get(self, request):
@@ -61,24 +61,90 @@ class AdminUserDeleteView(LoginRequiredMixin, View):
         # ป้องกันการลบตัวเองเพื่อความปลอดภัยของระบบ
         if user_to_delete == request.user:
             messages.error(request, "ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้")
-            return redirect('admin_config')
+            return redirect('admin_user') # เปลี่ยนเส้นทางกลับไปที่หน้า Manage Users
             
         if user_to_delete.is_superuser and not request.user.is_superuser:
             messages.error(request, "คุณไม่มีสิทธิ์ลบ Super Admin")
-            return redirect('admin_config')
+            return redirect('admin_user')
 
         username = user_to_delete.username
         user_to_delete.delete()
         messages.success(request, f"ลบผู้ดูแลระบบ {username} เรียบร้อยแล้ว")
-        return redirect('admin_config')
+        return redirect('admin_user')
 
-# --- นำ Stub Classes กลับมาเพื่อให้ระบบไม่ Error ตอน Import ---
+# -------------------------------------------------------------------
+# ฟังก์ชันสำหรับจัดการผู้ใช้งาน (Manage Users)
+# -------------------------------------------------------------------
+
 class AdminUserView(LoginRequiredMixin, View):
     def get(self, request):
-        return redirect('admin_config')
+        # ดึงรายชื่อ Admin ทั้งหมด (เรียงเอาคนที่ Active ขึ้นก่อน ตามด้วยชื่อ)
+        admin_users = User.objects.filter(is_staff=True).order_by('-is_active', '-is_superuser', 'username')
+        
+        # คำนวณสถิติเพื่อแสดงในการ์ดด้านบน
+        total_users = admin_users.count()
+        active_users = admin_users.filter(is_active=True).count()
+        
+        context = {
+            'admin_users': admin_users,
+            'total_users': total_users,
+            'active_users': active_users,
+        }
+        return render(request, 'cklab/admin/admin-users.html', context)
+
+    def post(self, request):
+        # รับค่าจาก Modal "เพิ่มแอดมินใหม่"
+        form = AdminUserForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.is_staff = True # ให้สิทธิ์เข้าหน้า Admin
+            user.save()
+            messages.success(request, f'เพิ่มผู้ดูแลระบบ {user.username} สำเร็จ')
+        else:
+            messages.error(request, 'เกิดข้อผิดพลาดในการเพิ่มบัญชี (Username อาจจะซ้ำ)')
+            
+        return redirect('admin_user')
 
 class AdminUserEditView(LoginRequiredMixin, View):
     def get(self, request, pk):
-        pass
+        # ดึงข้อมูลแอดมินที่ต้องการแก้ไข
+        user_to_edit = get_object_or_404(User, pk=pk)
+        
+        # สร้างฟอร์มโดยดึงข้อมูลเก่ามาใส่ไว้
+        form = AdminUserEditForm(instance=user_to_edit)
+        
+        return render(request, 'cklab/admin/admin-users-edit.html', {
+            'form': form, 
+            'user_to_edit': user_to_edit
+        })
+
     def post(self, request, pk):
-        pass
+        user_to_edit = get_object_or_404(User, pk=pk)
+        
+        # ตรวจสอบสถานะ Active จาก Switch (ถ้าถูกเปิดจะส่งค่า 'on' มา)
+        is_active_checked = request.POST.get('is_active') == 'on'
+        
+        # ระบบป้องกัน: ไม่ให้แอดมินทั่วไป ปิดการใช้งานบัญชีตัวเอง หรือปิดของ Super Admin
+        if not is_active_checked:
+             if user_to_edit == request.user:
+                 messages.error(request, 'คุณไม่สามารถปิดการใช้งานบัญชีของตนเองได้')
+                 return redirect('admin_user_edit', pk=pk)
+             if user_to_edit.is_superuser and not request.user.is_superuser:
+                 messages.error(request, 'คุณไม่มีสิทธิ์ปิดการใช้งาน Super Admin')
+                 return redirect('admin_user_edit', pk=pk)
+
+        # อัปเดตข้อมูลจาก Form บนหน้าเว็บ
+        user_to_edit.username = request.POST.get('username')
+        user_to_edit.email = request.POST.get('email', '')
+        user_to_edit.first_name = request.POST.get('first_name', '')
+        user_to_edit.last_name = request.POST.get('last_name', '')
+        user_to_edit.is_active = is_active_checked
+        
+        try:
+             user_to_edit.save()
+             messages.success(request, f'อัปเดตข้อมูลผู้ใช้ {user_to_edit.username} เรียบร้อยแล้ว')
+             return redirect('admin_user')
+        except Exception:
+             messages.error(request, 'เกิดข้อผิดพลาด: Username นี้มีผู้ใช้งานอื่นใช้แล้ว')
+             return redirect('admin_user_edit', pk=pk)
