@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import kiosk, auth, monitor, manage_pc, software
+from .views import kiosk, auth, monitor, manage_pc, software , report
 
 # (ในอนาคตถ้าเพื่อนทำไฟล์อื่นเสร็จ ให้มาเพิ่มตรงนี้ เช่น from .views import auth, monitor, booking)
 
@@ -20,9 +20,9 @@ urlpatterns = [
     # 2. ระบบ Login + จัดการ Admin User - ผู้รับผิดชอบ: สถาพร (สำรอง โดย ภานุวัฒน์)
     path('admin-portal/login/', auth.LoginView.as_view(), name='login'), # สถาพร
     path('admin-portal/logout/', auth.LogoutView.as_view(), name='logout'), # สถาพร
-    # path('admin-portal/users/', auth.AdminUserView.as_view(), name='admin_user'), # สถาพร (สำรอง โดย ภานุวัฒน์)
-    # path('admin-portal/users/<int:pk>/edit/', auth.AdminUserEditView.as_view(), name='admin_user_edit'), # สถาพร (สำรอง โดย ภานุวัฒน์)
-    # path('admin-portal/users/<int:pk>/delete/', auth.AdminUserDeleteView.as_view(), name='admin_user_delete'), # สถาพร (สำรอง โดย ภานุวัฒน์)
+    path('admin-portal/users/', auth.AdminUserView.as_view(), name='admin_user'), # สถาพร (สำรอง โดย ภานุวัฒน์)
+    path('admin-portal/users/<int:pk>/edit/', auth.AdminUserEditView.as_view(), name='admin_user_edit'), # สถาพร (สำรอง โดย ภานุวัฒน์)
+    path('admin-portal/users/<int:pk>/delete/', auth.AdminUserDeleteView.as_view(), name='admin_user_delete'), # สถาพร (สำรอง โดย ภานุวัฒน์)
 
     # 3. ฝั่งผู้ดูแลระบบ (Admin Portal)
     path('admin-portal/monitor/', monitor.AdminMonitorView.as_view(), name='admin_monitor'), # ธนสิทธิ์ (สำรอง โดย ปภังกร)
@@ -42,7 +42,9 @@ urlpatterns = [
     path('admin-portal/software/<int:pk>/edit/', software.AdminSoftwareEditView.as_view(), name='admin_software_edit'), # ลลิดา
     path('admin-portal/software/<int:pk>/delete/', software.AdminSoftwareDeleteView.as_view(), name='admin_software_delete'), # ลลิดา
     
-    # path('admin-portal/report/', report.AdminReportView.as_view(), name='admin_report'), # เขมมิกา
-    # path('admin-portal/report/export/', report.AdminReportExportView.as_view(), name='admin_report_export'), # เขมมิกา
+    path('admin-portal/report/', report.AdminReportView.as_view(), name='admin_report'), # เขมมิกา
+    path('admin-portal/report/export/', report.AdminReportExportView.as_view(), name='admin_report_export'), # เขมมิกา
+    path('admin-portal/report/api/logs/', report.AdminReportAPIView.as_view(), name='admin_report_api'),
+    path('admin-portal/report/import/', report.AdminReportView.as_view(), name='admin_report_import'),
     # path('admin-portal/config/', config.AdminConfigView.as_view(), name='admin_config'), # ภานุวัฒน์
 ]

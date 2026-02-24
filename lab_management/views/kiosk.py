@@ -67,12 +67,12 @@ class VerifyUserAPIView(View):
             student_id = body.get('student_id', '').strip()
 
             if not student_id:
-                return JsonResponse({'status': 'error', 'message': 'กรุณาระบุรหัสนักศึกษา'}, status=400)
+                return JsonResponse({'status': 'error', 'message': 'กรุณาระบุรหัสนักศึกษาหรือรหัสบุคลากร'}, status=400)
 
-            # 1. เข้ารหัสรหัสนักศึกษาเป็น Base64
+            # 1. เข้ารหัสรหัสเป็น Base64
             encoded_id = base64.b64encode(student_id.encode('utf-8')).decode('utf-8')
 
-            # 2. ยิงตรงไปดึงข้อมูลนักศึกษา (ไม่ใช้ Token)
+            # 2. ยิงตรงไปดึงข้อมูล (ไม่ใช้ Token)
             data_url = "https://esapi.ubu.ac.th/api/v1/student/reg-data"
             headers = {
                 "Content-Type": "application/json"
@@ -82,32 +82,43 @@ class VerifyUserAPIView(View):
             # ใช้ verify=False เพื่อข้ามปัญหา SSL
             data_response = requests.post(data_url, headers=headers, json=data_payload, timeout=10, verify=False)
             
-            # ✅ ยอมรับทั้ง 200 (OK) และ 201 (Created) ว่าทำงานสำเร็จ
+            # ยอมรับทั้ง 200 (OK) และ 201 (Created) ว่าทำงานสำเร็จ
             if data_response.status_code not in [200, 201]:
-                error_msg = data_response.text
                 return JsonResponse({'status': 'error', 'message': f'UBU API Connection Error ({data_response.status_code})'}, status=500)
 
             result = data_response.json()
 
-            # ✅ เช็ค statusCode ข้างใน JSON เผื่อมหาลัยส่ง 201 มา
+            # เช็ค statusCode ข้างใน JSON เผื่อมหาลัยส่ง 201 มา
             if result.get('statusCode') in [200, 201] and result.get('data'):
                 # ดึงข้อมูลตรงๆ เพราะ API ส่งมาเป็น Object 
                 user_data = result['data'] 
                 
                 # ประกอบชื่อไทย
-                full_name = f"{user_data.get('USERPREFIXNAME', '')}{user_data.get('USERNAME', '')} {user_data.get('USERSURNAME', '')}"
+                full_name = f"{user_data.get('USERPREFIXNAME', '')}{user_data.get('USERNAME', '')} {user_data.get('USERSURNAME', '')}".strip()
                 
-                # ดึงชั้นปีจาก API (STUDENTYEAR)
+                # ดึงชั้นปีจาก API
                 student_year = str(user_data.get('STUDENTYEAR', '-'))
+
+                # ==========================================
+                # ✅ เพิ่มลอจิกคัดกรอง "บุคลากร/อาจารย์"
+                # ==========================================
+                role = 'student'
+                staff_prefixes = ['อาจารย์', 'ดร.', 'ผศ.', 'รศ.', 'ศ.', 'นพ.', 'พญ.']
+                
+                # ถ้ารหัสไม่ได้มีแค่ตัวเลข (เช่น scwayopu) หรือมีคำนำหน้าเป็นอาจารย์ ให้ถือว่าเป็น staff
+                if not student_id.isdigit() or any(prefix in full_name for prefix in staff_prefixes):
+                    role = 'staff'
+                    if student_year == '0': # หากเป็นบุคลากร มักไม่มีชั้นปี หรือเป็น 0
+                        student_year = '-'
 
                 return JsonResponse({
                     'status': 'success',
                     'data': {
                         'id': student_id,
-                        'name': full_name.strip(),
+                        'name': full_name,
                         'faculty': user_data.get('FACULTYNAME', 'มหาวิทยาลัยอุบลราชธานี'),
-                        'role': 'student',
-                        'level': user_data.get('LEVELNAME', 'ปริญญาตรี'),
+                        'role': role, # ส่งค่าที่คัดกรองแล้วกลับไป (student หรือ staff)
+                        'level': user_data.get('LEVELNAME', 'บุคคลทั่วไป' if role == 'staff' else 'ปริญญาตรี'),
                         'year': student_year
                     }
                 })
@@ -115,7 +126,7 @@ class VerifyUserAPIView(View):
                 return JsonResponse({'status': 'error', 'message': 'ไม่พบข้อมูลในระบบ (รหัสผิด หรือไม่ได้ลงทะเบียน)'}, status=404)
 
         except requests.exceptions.RequestException as e:
-            return JsonResponse({'status': 'error', 'message': f'Network Error: ตรวจสอบการเชื่อมต่อ VPN มหาวิทยาลัย'}, status=503)
+            return JsonResponse({'status': 'error', 'message': 'Network Error: ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือ VPN'}, status=503)
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': f'System Error: {str(e)}'}, status=500)
 

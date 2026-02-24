@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalEl = document.getElementById('labClosedModal');
     if (modalEl) labClosedModal = new bootstrap.Modal(modalEl);
 
-    // Validate PC ID (แก้ไข: เช็คแค่ว่ามีค่าส่งมาหรือไม่ ไม่ต้องเช็คว่าเป็นตัวเลข)
+    // Validate PC ID (เช็คแค่ว่ามีค่าส่งมาหรือไม่)
     if (!FIXED_PC_ID) {
         renderNoPcIdError();
         return;
@@ -47,21 +47,32 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMachineAndLabStatus();
     setInterval(fetchMachineAndLabStatus, 3000); // ดึงข้อมูลทุก 3 วินาที
 
-    // Bind Events
+    // Bind Events สำหรับฟอร์ม External
     const extInputs = document.querySelectorAll('#formExternal input');
     if(extInputs.length > 0) extInputs.forEach(input => input.addEventListener('input', validateForm));
     
-    // Smart Enter Logic
+    // Smart Enter Logic สำหรับช่องรหัสนักศึกษา
     const ubuInput = document.getElementById('ubuUser');
     if(ubuInput) {
         ubuInput.addEventListener('keydown', (e) => { 
             if (e.key === 'Enter') {
+                e.preventDefault(); // ป้องกันการ reload หน้า
                 if (!verifiedUserData) {
                     verifyUBUUser(); // ยังไม่ผ่าน -> ตรวจสอบ
                 } else {
-                    confirmCheckIn(); // ผ่านแล้ว -> เข้าใช้งานเลย
+                    const btn = document.getElementById('btnConfirm');
+                    if(btn && !btn.disabled) confirmCheckIn(); // ผ่านแล้ว -> เข้าใช้งานเลย
                 }
             } 
+        });
+        // ให้เคลียร์ข้อมูลเก่าเมื่อเริ่มพิมพ์ใหม่
+        ubuInput.addEventListener('input', () => {
+            if(verifiedUserData) {
+                verifiedUserData = null;
+                const verifyCard = document.getElementById('internalVerifyCard');
+                if(verifyCard) verifyCard.classList.add('d-none');
+                validateForm();
+            }
         });
     }
 });
@@ -69,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ✅ ดึงสถานะเครื่องและสถานะแล็บจาก Backend
 async function fetchMachineAndLabStatus() {
     try {
-        // ใช้ relative path เพื่อให้รองรับทั้ง / และ /kiosk/
         const response = await fetch(`/api/status/${FIXED_PC_ID}/`);
         if (!response.ok) return;
 
@@ -134,21 +144,28 @@ function switchTab(type) {
     const btnExt = document.getElementById('tab-external');
     
     // Reset Internal Form
-    document.getElementById('ubuUser').value = '';
-    document.getElementById('internalVerifyCard').classList.add('d-none');
+    const ubuUserEl = document.getElementById('ubuUser');
+    if(ubuUserEl) ubuUserEl.value = '';
+    
+    const verifyCard = document.getElementById('internalVerifyCard');
+    if(verifyCard) verifyCard.classList.add('d-none');
+    
     const errEl = document.getElementById('loginError');
     if(errEl) errEl.classList.add('d-none');
+
+    const formInt = document.getElementById('formInternal');
+    const formExt = document.getElementById('formExternal');
 
     if(type === 'internal') {
         if(btnInt) btnInt.classList.add('active'); 
         if(btnExt) btnExt.classList.remove('active');
-        document.getElementById('formInternal').classList.remove('d-none');
-        document.getElementById('formExternal').classList.add('d-none');
+        if(formInt) formInt.classList.remove('d-none');
+        if(formExt) formExt.classList.add('d-none');
     } else {
         if(btnExt) btnExt.classList.add('active'); 
         if(btnInt) btnInt.classList.remove('active');
-        document.getElementById('formExternal').classList.remove('d-none');
-        document.getElementById('formInternal').classList.add('d-none');
+        if(formExt) formExt.classList.remove('d-none');
+        if(formInt) formInt.classList.add('d-none');
     }
     validateForm();
 }
@@ -156,6 +173,8 @@ function switchTab(type) {
 // ✅ ฟังก์ชันตรวจสอบผู้ใช้ (ยิง API ไปหา Django Backend ซึ่งจะไปคุยกับ UBU API ต่อ)
 async function verifyUBUUser() {
     const input = document.getElementById('ubuUser');
+    if(!input) return;
+    
     const id = input.value.trim();
     if(!id) { input.focus(); return; }
     
@@ -164,9 +183,12 @@ async function verifyUBUUser() {
     
     // ปิดปุ่มตรวจสอบชั่วคราวขณะโหลด และเปลี่ยนข้อความ
     const checkBtn = input.nextElementSibling;
-    const originalBtnText = checkBtn.innerHTML;
-    checkBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-    checkBtn.disabled = true;
+    let originalBtnText = "ตรวจสอบ";
+    if (checkBtn) {
+        originalBtnText = checkBtn.innerHTML;
+        checkBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        checkBtn.disabled = true;
+    }
 
     try {
         const response = await fetch('/api/verify-user/', {
@@ -181,15 +203,44 @@ async function verifyUBUUser() {
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-            // ดึงข้อมูลที่ได้จาก UBU API ผ่าน Django มาแสดงผล
             verifiedUserData = result.data;
             
-            document.getElementById('showName').innerText = verifiedUserData.name;
-            document.getElementById('showFaculty').innerText = verifiedUserData.faculty;
-            const roleEl = document.getElementById('showRole');
-            if(roleEl) roleEl.innerText = verifiedUserData.role.toUpperCase();
+            // ==================================================
+            // ✅ ลอจิกตรวจสอบ 'บุคลากร' ที่หน้า Front-End (กันเหนียว)
+            // ==================================================
+            const nameToCheck = verifiedUserData.name || "";
+            const idToCheck = String(verifiedUserData.id || "");
             
-            verifyCard.classList.remove('d-none');
+            // เช็คว่ารหัสไม่ใช่ตัวเลขล้วน หรือ มีคำนำหน้าเป็นอาจารย์/ดร.
+            const isStaffByName = nameToCheck.includes("อาจารย์") || nameToCheck.includes("ดร.") || nameToCheck.includes("ผศ.") || nameToCheck.includes("รศ.");
+            const isStaffById = !/^\d+$/.test(idToCheck); // รหัสที่ไม่ใช่ตัวเลข 0-9 ล้วน
+
+            if (isStaffByName || isStaffById) {
+                verifiedUserData.role = 'staff'; 
+                // หากเป็นบุคลากร ไม่ต้องแสดงชั้นปี
+                verifiedUserData.year = '-';
+            }
+
+            // แสดงผลขึ้นหน้าจอ
+            const showNameEl = document.getElementById('showName');
+            const showFacultyEl = document.getElementById('showFaculty');
+            const showRoleEl = document.getElementById('showRole');
+            
+            if(showNameEl) showNameEl.innerText = verifiedUserData.name;
+            if(showFacultyEl) showFacultyEl.innerText = verifiedUserData.faculty;
+            
+            if(showRoleEl) {
+                if (verifiedUserData.role === 'staff') {
+                    showRoleEl.innerText = 'STAFF (บุคลากร)';
+                    showRoleEl.className = 'badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill mt-1';
+                } else {
+                    showRoleEl.innerText = 'STUDENT (นักศึกษา)';
+                    showRoleEl.className = 'badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-2 rounded-pill mt-1';
+                }
+            }
+            // ==================================================
+            
+            if(verifyCard) verifyCard.classList.remove('d-none');
             if(errEl) errEl.classList.add('d-none'); // ซ่อน Error
 
             validateForm();
@@ -210,13 +261,17 @@ async function verifyUBUUser() {
             alert(`❌ ${error.message}`);
         }
         
-        verifyCard.classList.add('d-none');
+        if(verifyCard) verifyCard.classList.add('d-none');
         verifiedUserData = null;
-        input.value = ''; input.focus(); validateForm();
+        // ไม่ทำการ input.value = '' เพื่อให้ผู้ใช้สามารถแก้คำผิดได้ง่ายขึ้น
+        input.focus(); 
+        validateForm();
     } finally {
         // คืนค่าปุ่มกลับเหมือนเดิม
-        checkBtn.innerHTML = originalBtnText;
-        checkBtn.disabled = false;
+        if (checkBtn) {
+            checkBtn.innerHTML = originalBtnText;
+            checkBtn.disabled = false;
+        }
     }
 }
 
@@ -225,10 +280,13 @@ function validateForm() {
     const btn = document.getElementById('btnConfirm');
     if (!btn) return;
 
-    if (activeTab === 'internal') isUserValid = (verifiedUserData !== null);
-    else {
-        const id = document.getElementById('extIdCard').value.trim();
-        const name = document.getElementById('extName').value.trim();
+    if (activeTab === 'internal') {
+        isUserValid = (verifiedUserData !== null);
+    } else {
+        const idEl = document.getElementById('extIdCard');
+        const nameEl = document.getElementById('extName');
+        const id = idEl ? idEl.value.trim() : '';
+        const name = nameEl ? nameEl.value.trim() : '';
         isUserValid = (id !== '' && name !== '');
     }
     
@@ -239,13 +297,19 @@ function validateForm() {
     if (isUserValid && isAccessible) {
         btn.disabled = false;
         btn.className = 'btn btn-success w-100 py-3 fw-bold shadow-sm rounded-3 transition-btn';
-        if (pcStatus === 'RESERVED') btn.innerHTML = `<i class="bi bi-calendar-check me-2"></i>ยืนยันการเข้าใช้งาน (ตามที่จองไว้)`;
-        else btn.innerHTML = `<i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบและเริ่มใช้งาน`;
+        if (pcStatus === 'RESERVED') {
+            btn.innerHTML = `<i class="bi bi-calendar-check me-2"></i>ยืนยันการเข้าใช้งาน (ตามที่จองไว้)`;
+        } else {
+            btn.innerHTML = `<i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบและเริ่มใช้งาน`;
+        }
     } else {
         btn.disabled = true;
         btn.className = 'btn btn-secondary w-100 py-3 fw-bold shadow-sm rounded-3 transition-btn';
-        if (!isAccessible) btn.innerHTML = `<i class="bi bi-x-circle me-2"></i>เครื่องไม่ว่าง (${pcStatus})`;
-        else btn.innerHTML = `<i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบและเริ่มใช้งาน`;
+        if (!isAccessible) {
+            btn.innerHTML = `<i class="bi bi-x-circle me-2"></i>เครื่องไม่ว่าง (${pcStatus})`;
+        } else {
+            btn.innerHTML = `<i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบและเริ่มใช้งาน`;
+        }
     }
 }
 
@@ -254,10 +318,14 @@ function confirmCheckIn() {
     if (!verifiedUserData && activeTab === 'internal') return;
     
     if (activeTab === 'external') {
+        const idEl = document.getElementById('extIdCard');
+        const nameEl = document.getElementById('extName');
+        const orgEl = document.getElementById('extOrg');
+        
         verifiedUserData = {
-            id: document.getElementById('extIdCard').value.trim(),
-            name: document.getElementById('extName').value.trim(),
-            faculty: document.getElementById('extOrg').value.trim() || 'บุคคลทั่วไป',
+            id: idEl ? idEl.value.trim() : '',
+            name: nameEl ? nameEl.value.trim() : '',
+            faculty: (orgEl && orgEl.value.trim() !== '') ? orgEl.value.trim() : 'บุคคลทั่วไป',
             role: 'guest', // ตรงกับ choices ใน model
             level: 'บุคคลทั่วไป',
             year: '-'
