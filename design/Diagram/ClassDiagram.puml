@@ -1,0 +1,137 @@
+@startuml ClassDiagram
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+title CKLab Management System — Class Diagram\n(จาก models.py)
+
+' ──────────────────────────────────────────
+' AUTH (Django built-in)
+' ──────────────────────────────────────────
+package "Django Built-in Auth" #LightYellow {
+    class User {
+        + id : AutoField
+        + username : CharField
+        + password : CharField
+        + first_name : CharField
+        + last_name : CharField
+        + is_staff : BooleanField
+        + is_superuser : BooleanField
+        --
+        role: is_staff=True → Staff
+        role: is_superuser=True → Super Admin
+    }
+}
+
+' ──────────────────────────────────────────
+' SITE CONFIG
+' ──────────────────────────────────────────
+class SiteConfig {
+    + id : AutoField
+    + lab_name : CharField
+    + booking_enabled : BooleanField
+    + announcement : TextField
+    + location : CharField
+    + is_open : BooleanField
+    --
+    admin_on_duty → AdminonDuty [FK]
+}
+
+class AdminonDuty {
+    + id : AutoField
+    + admin_on_duty : CharField
+    + contact_phone : CharField
+    + contact_email : EmailField
+}
+
+' ──────────────────────────────────────────
+' SOFTWARE
+' ──────────────────────────────────────────
+class Software {
+    + id : AutoField
+    + name : CharField
+    + version : CharField
+    + type : CharField
+    .. choices ..
+    "Software" | "AI"
+    --
+    + expire_date : DateField
+    __
+    __str__() : str
+}
+
+' ──────────────────────────────────────────
+' COMPUTER (รวม status ไว้ในนี้แล้ว)
+' ──────────────────────────────────────────
+class Computer {
+    + id : AutoField
+    + name : CharField <<unique>>
+    + status : CharField
+    .. choices ..
+    AVAILABLE | IN_USE
+    RESERVED | MAINTENANCE
+    --
+    + last_updated : DateTimeField
+    + description : TextField
+    --
+    Software → Software [FK]
+}
+
+' ──────────────────────────────────────────
+' BOOKING
+' ──────────────────────────────────────────
+class Booking {
+    + id : AutoField
+    + student_id : CharField
+    + start_time : DateTimeField
+    + end_time : DateTimeField
+    + booking_date : DateTimeField
+    + status : CharField
+    .. choices ..
+    PENDING | APPROVED | REJECTED
+    --
+    + created_at : DateTimeField
+    --
+    computer → Computer [FK]
+}
+
+' ──────────────────────────────────────────
+' USAGE LOG
+' ──────────────────────────────────────────
+class UsageLog {
+    + id : AutoField
+    + user_id : CharField
+    + user_name : CharField
+    + user_type : CharField
+    .. choices ..
+    student | staff | guest
+    --
+    + department : CharField
+    + user_year : CharField
+    + computer : CharField
+    + Software : CharField
+    + start_time : DateTimeField
+    + end_time : DateTimeField
+    + satisfaction_score : IntegerField
+    + comment : TextField
+}
+
+note right of UsageLog
+  computer, Software เก็บเป็น
+  CharField (snapshot ของชื่อ)
+  ไม่ใช่ FK — เหมาะสมสำหรับ
+  บันทึกประวัติ (log)
+end note
+
+' ──────────────────────────────────────────
+' RELATIONSHIPS
+' ──────────────────────────────────────────
+
+SiteConfig "1" --> "0..1" AdminonDuty : admin_on_duty (FK)
+
+Computer "1" --> "0..1" Software : Software (FK)
+
+Booking "many" --> "0..1" Computer : computer (FK)
+
+@enduml

@@ -1,3 +1,4 @@
+from .auth import LoginView, LogoutView
 from .kiosk import IndexView, CheckinView, CheckoutView, StatusView, FeedbackView
 from .monitor import AdminMonitorView, AdminCheckinView, AdminCheckoutView
 from .booking import AdminBookingView, AdminBookingDetailView, AdminImportBookingView

@@ -1,65 +1,80 @@
 {% extends 'cklab/base.html' %}
 {% load static %}
 
-{% block title %}Active Session{% endblock %}
+{% block title %}กำลังใช้งาน - Station {{ computer.name|default:"Unknown" }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="{% static 'cklab/css/main.css' %}?v={% now 'U' %}" rel="stylesheet">
+
+<style>
+    /* ซ่อน Navbar / Sidebar เพื่อให้เป็น Kiosk เต็มจอ */
+    header, nav, .sidebar, .navbar { display: none !important; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="bg-light d-flex align-items-center justify-content-center min-vh-100 w-100 font-prompt position-absolute top-0 start-0">
-
-    <div class="timer-card text-center position-relative">
+<div class="d-flex align-items-center justify-content-center min-vh-100 text-dark timer-page-bg">
+    
+    <div class="text-center w-100 animate-fade" style="max-width: 600px;">
         
-        <div class="bg-primary w-100" style="height: 6px;"></div>
+        <img src="{% static 'cklab/img/ubu_logo.png' %}" alt="UBU Logo" height="50" class="mb-4 opacity-75" onerror="this.style.display='none';">
 
-        <div class="p-5">
-            <div class="mb-5">
-                <span class="station-badge">
-                    <i class="bi bi-display me-2"></i>{{ computer.name }}
-                </span>
+        <h5 class="text-muted mb-2">ผู้ใช้งานปัจจุบัน</h5>
+        <h2 id="userNameDisplay" class="mb-4 fw-bold" style="color: var(--accent);">กำลังโหลดชื่อ...</h2>
+        
+        <div class="card timer-simple-card position-relative overflow-hidden mx-auto mb-4">
+            
+            <h1 class="display-1 fw-bold mb-0" id="timerDisplay" style="color: var(--accent); letter-spacing: -2px;">00:00:00</h1>
+            <small class="text-muted mt-2 d-block fs-6" id="timerLabel">ระยะเวลาที่ใช้งาน (Usage Time)</small>
+            
+            <div id="alertBox" class="alert alert-warning mt-4 mb-0 d-none text-start animate-fade rounded-3 border-0 shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                <span id="alertMsg" class="text-dark">แจ้งเตือน...</span>
             </div>
-
-            <div class="mb-5">
-                <div class="display-1" id="timerDisplay" style="font-size: 5rem;">00:00:00</div>
-                <small class="text-muted opacity-75 fw-light mt-2 d-block">SESSION DURATION</small>
-            </div>
-
-            <div class="mb-5">
-                <div class="d-flex align-items-center justify-content-center text-muted mb-1">
-                    <i class="bi bi-person-circle me-2"></i>User
-                </div>
-                <h4 class="text-primary fw-bold mb-0 text-truncate px-3">
-                    {{ user_name|default:"-" }}
-                </h4>
-            </div>
-
-            <div id="alertBox" class="alert alert-warning mb-4 d-none text-start border-0 bg-warning bg-opacity-10 text-dark rounded-3">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <span id="alertMsg"></span>
-            </div>
-
-            <button onclick="doCheckout()" class="btn btn-outline-danger w-100 py-3 rounded-pill fw-bold border-2 hover-scale">
-                <i class="bi bi-power me-2"></i> Check Out
-            </button>
         </div>
 
-        <div class="pb-4 opacity-25">
-             <img src="{% static 'cklab/img/ubulogo.png' %}" style="height: 25px; filter: grayscale(100%);">
+        <div class="mb-4 d-flex justify-content-center align-items-center gap-2 flex-wrap">
+            <span class="badge px-4 py-2 shadow-sm rounded-pill" id="pcNameDisplay" style="background-color: var(--primary); font-size: 1rem; font-weight: 500;">
+                <span class="status-indicator bg-success rounded-circle d-inline-block" style="width: 8px; height: 8px; margin-right: 6px;"></span>
+                Station: {{ computer.name|default:"-" }}
+            </span>
+            
+            <span class="badge px-4 py-2 shadow-sm rounded-pill bg-white text-primary border border-primary" style="font-size: 1rem; font-weight: 500;">
+                {% if computer.Software and computer.Software.type == 'AI' %}
+                    <i class="bi bi-robot me-1"></i>
+                {% else %}
+                    <i class="bi bi-pc-display me-1"></i>
+                {% endif %}
+                {{ software_name|default:"General Use" }}
+            </span>
         </div>
+
+        <div class="d-grid gap-3 d-sm-flex justify-content-center mt-2">
+            <form id="checkoutForm" method="POST" action="{% url 'kiosk_checkout' computer.name %}">
+                {% csrf_token %}
+                <button type="button" onclick="doCheckout()" class="btn btn-danger btn-lg px-5 py-3 rounded-pill fw-bold shadow transition-all">
+                    <i class="bi bi-power me-2"></i> เลิกใช้งาน (Check-out)
+                </button>
+            </form>
+        </div>
+        
     </div>
 
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
 <script>
-    window.djangoData = {
-        pcId: "{{ computer.pc_id }}",
-        userName: "{{ user_name }}",
-        startTime: "{{ start_time }}",
-        forceEndTime: "{{ force_end_time|default:'' }}",
-        monitorUrl: "{% url 'api_monitor_data' %}",
-        feedbackUrl: "{% url 'feedback' %}",
-        indexUrl: "{% url 'index' %}?pc={{ computer.pc_id }}"
-    };
+    // ประกาศตัวแปรรับค่าจาก Django เพื่อให้ timer.js นำไปใช้งานต่อ
+    const PC_ID = "{{ computer.name|default:''|escapejs }}";
+    
+    // เวลากันหลุดจาก Database (ใส่ default:"0" เป็น String ไว้กันเหนียวให้ parseInt อ่านได้เสมอ)
+    const SERVER_START_TIME = parseInt("{{ start_time_ms|default:'0' }}"); 
+    
+    // ชื่อผู้ใช้จาก Database (เพิ่ม escapejs ป้องกันบั๊กกรณีชื่อมีเครื่องหมายคำพูด)
+    const DB_USER_NAME = "{{ user_name|default:''|escapejs }}"; 
 </script>
-<script src="{% static 'cklab/js/timer.js' %}"></script>
+
+<script src="{% static 'cklab/js/timer.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

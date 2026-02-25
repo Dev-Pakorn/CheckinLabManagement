@@ -1,79 +1,115 @@
-/**
- * Timer Logic for Kiosk System
- * รับค่า Config มาจาก window.djangoData (ประกาศไว้ใน timer.html)
- */
+// timer.js - Django Integrated Version (Light & Clean Theme)
 
-let timerInterval = null;
-let syncInterval = null;
+let timerInterval; 
+let startTime; // เก็บเวลาเริ่มใช้งานที่ได้มาจาก Backend หรือตอนโหลดหน้า
+let forceEndTime = null; // สำหรับกรณีจองเวลา (ถ้ามีในอนาคต)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. รับค่าตัวแปรจาก Django Template
-    const session = window.djangoData;
-    
-    // Safety Check: ถ้าไม่มีข้อมูล session ให้หยุดทำงาน
-    if (!session) {
-        console.error("Django Session Data not found!");
-        return;
+    // 1. ✅ กำหนดเวลาเริ่มต้น (ถ้ารับมาจาก DB ให้ใช้เวลาของ DB, ถ้าไม่มีให้เอาเวลาปัจจุบัน)
+    if (typeof SERVER_START_TIME !== 'undefined' && SERVER_START_TIME > 0) {
+        startTime = SERVER_START_TIME;
+    } else {
+        startTime = Date.now(); 
     }
 
-    // ------------------------------------------------
-    // ส่วนที่ 1: ระบบจับเวลา (Timer)
-    // ------------------------------------------------
-    const startTime = new Date(session.startTime).getTime();
+    // 2. ✅ ดึงชื่อผู้ใช้จาก DB (กรณีเน็ตหลุด) หรือ Session Storage (ตอน Check-in ปกติ) มาแสดง
+    let savedUser = (typeof DB_USER_NAME !== 'undefined' && DB_USER_NAME) ? DB_USER_NAME : sessionStorage.getItem('cklab_user_name');
     
-    function updateTimer() {
-        const now = new Date().getTime();
-        let diff = now - startTime;
-        
-        // ป้องกันเวลาติดลบ (กรณี Clock เครื่อง Client ช้ากว่า Server)
-        if (diff < 0) diff = 0;
-        
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        
-        const display = document.getElementById('timerDisplay');
-        if (display) {
-            // Format: HH:MM:SS (เติม 0 ข้างหน้าถ้าเลขหลักเดียว)
-            display.innerText = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    
+    if (userNameDisplay) {
+        if (savedUser) {
+            userNameDisplay.innerText = savedUser;
+        } else if (userNameDisplay.innerText.includes('กำลังโหลด')) {
+            userNameDisplay.innerText = 'ผู้ใช้งานระบบ Kiosk';
         }
     }
     
-    // เริ่มทำงานทันที และอัปเดตทุก 1 วินาที
-    updateTimer();
-    timerInterval = setInterval(updateTimer, 1000);
-
-    // ------------------------------------------------
-    // ส่วนที่ 2: ระบบ Sync กับ Server (Heartbeat)
-    // ------------------------------------------------
-    syncInterval = setInterval(() => {
-        fetch(session.monitorUrl)
-            .then(res => {
-                if (!res.ok) throw new Error("Network response was not ok");
-                return res.json();
-            })
-            .then(data => {
-                // แปลง pc_id เป็น String ทั้งคู่เพื่อป้องกันปัญหา Type Mismatch
-                const myPC = data.data.find(pc => String(pc.pc_id) === String(session.pcId));
-                
-                // ถ้าสถานะเปลี่ยนเป็น available แสดงว่า Admin สั่งตัดจบ หรือ Session หมดอายุ
-                if (myPC && myPC.status === 'available') {
-                    // Redirect กลับหน้าแรก (URL จะมี ?pc=... ติดไปด้วยตามที่ตั้งไว้)
-                    window.location.href = session.indexUrl;
-                }
-            })
-            .catch(err => {
-                console.warn("Sync Warning: Connection to server lost temporarily.", err);
-            });
-    }, 5000); // ตรวจสอบทุกๆ 5 วินาที
+    // 3. เริ่มจับเวลา
+    setupUnlimitedMode();
 });
 
-// ------------------------------------------------
-// ส่วนที่ 3: ฟังก์ชัน Checkout (Export ให้ HTML เรียกใช้ได้)
-// ------------------------------------------------
-window.doCheckout = function() {
-    if (confirm('ยืนยันการเลิกใช้งาน?')) {
-        // ส่งต่อไปยังหน้า Feedback (ซึ่งจะทำการ Logout และ Clear Session)
-        window.location.href = window.djangoData.feedbackUrl;
+function setupUnlimitedMode() {
+    console.log("Mode: Normal Timer (Elapsed)");
+    const label = document.getElementById('timerLabel');
+    if(label) label.innerText = "ระยะเวลาที่ใช้งาน (Usage Time)";
+    
+    updateTimer(); 
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(updateTimer, 1000); 
+    
+    // เช็คสถานะกับ Backend ทุก 5 วินาที เผื่อ Admin สั่งเตะออก
+    setInterval(syncWithAdminUpdates, 5000);
+}
+
+function updateTimer() {
+    const now = Date.now();
+    let diff = now - startTime;
+    if (diff < 0) diff = 0;
+    
+    const timerDisplay = document.getElementById('timerDisplay');
+    if(timerDisplay) {
+        timerDisplay.innerText = formatTime(diff);
+        // เอาการเติม text-white ออกไป เพราะ CSS ธีมใหม่เราบังคับให้เป็นสีน้ำเงินเข้มแล้ว
+        timerDisplay.classList.remove('text-danger', 'fw-bold'); 
     }
-};
+}
+
+async function syncWithAdminUpdates() {
+    if (typeof PC_ID === 'undefined' || !PC_ID) return;
+
+    try {
+        const response = await fetch(`/kiosk/api/status/${PC_ID}/`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        // หากสถานะเครื่องกลายเป็น AVAILABLE หรือ MAINTENANCE แปลว่าแอดมินสั่งเคลียร์เครื่องแล้ว
+        if (data.status === 'AVAILABLE' || data.status === 'MAINTENANCE') {
+            alert("⚠️ Admin ได้ทำการรีเซ็ตเครื่องหรือเช็คเอาท์ให้คุณแล้ว");
+            window.location.href = `/kiosk/?pc=${PC_ID}`; // กลับหน้าแรกทันที (ไม่ผ่าน feedback)
+            return;
+        }
+
+    } catch (error) {
+        console.error("Sync error:", error);
+    }
+}
+
+function formatTime(ms) {
+    const h = Math.floor(ms / 3600000).toString().padStart(2, '0');
+    const m = Math.floor((ms % 3600000) / 60000).toString().padStart(2, '0');
+    const s = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+function showAlert(msg) {
+    const box = document.getElementById('alertBox');
+    const txt = document.getElementById('alertMsg');
+    if(box && txt) {
+        box.classList.remove('d-none');
+        txt.innerText = msg;
+    }
+}
+
+function hideAlert() {
+    const box = document.getElementById('alertBox');
+    if(box) box.classList.add('d-none');
+}
+
+function doCheckout(isAuto = false) {
+    if (!isAuto && !confirm('คุณต้องการเลิกใช้งานและออกจากระบบใช่หรือไม่?')) return;
+    if (timerInterval) clearInterval(timerInterval);
+
+    // ป้องกันการกดปุ่มซ้ำรัวๆ
+    const btn = document.querySelector('.btn-danger');
+    if(btn) btn.disabled = true;
+
+    // สั่งให้ Form ที่ครอบปุ่ม Checkout ไว้ ทำการ Submit ตัวเองไปยัง Django Backend (CheckoutView)
+    const form = document.getElementById('checkoutForm');
+    if (form) {
+        form.submit();
+    } else {
+        alert("ไม่พบฟอร์มสำหรับ Checkout กรุณาติดต่อผู้ดูแลระบบ");
+    }
+}

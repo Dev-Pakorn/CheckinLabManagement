@@ -1,4 +1,4 @@
-/* admin-report.js (Final Merged: New Charts + Percentages + Fixed Year Filter) */
+/* admin-report.js (Django Integration Version - Part 1) */
 
 // --- Global Variables ---
 let monthlyFacultyChartInstance, monthlyOrgChartInstance;
@@ -12,180 +12,82 @@ let rowsPerPage = 10;
 let filteredLogsGlobal = []; 
 
 // --- Master Lists ---
-// ✅ เรียงลำดับตามปกติ (วิทยาศาสตร์ขึ้นก่อน) ตามที่แจ้ง
 const FACULTY_LIST = [
-    "คณะวิทยาศาสตร์", 
-    "คณะเกษตรศาสตร์", 
-    "คณะวิศวกรรมศาสตร์", 
-    "คณะศิลปศาสตร์", 
-    "คณะเภสัชศาสตร์", 
-    "คณะบริหารศาสตร์", 
-    "คณะพยาบาลศาสตร์", 
-    "วิทยาลัยแพทยศาสตร์และการสาธารณสุข", 
-    "คณะศิลปประยุกต์และสถาปัตยกรรมศาสตร์", 
-    "คณะนิติศาสตร์", 
-    "คณะรัฐศาสตร์", 
-    "คณะศึกษาศาสตร์"
+    "คณะวิทยาศาสตร์", "คณะเกษตรศาสตร์", "คณะวิศวกรรมศาสตร์", "คณะศิลปศาสตร์", 
+    "คณะเภสัชศาสตร์", "คณะบริหารศาสตร์", "คณะพยาบาลศาสตร์", "วิทยาลัยแพทยศาสตร์และการสาธารณสุข", 
+    "คณะศิลปประยุกต์และสถาปัตยกรรมศาสตร์", "คณะนิติศาสตร์", "คณะรัฐศาสตร์", "คณะศึกษาศาสตร์"
 ];
 
-const ORG_LIST = ["สำนักคอมพิวเตอร์และเครือข่าย", "สำนักบริหารทรัพย์สินและสิทธิประโยชน์", "สำนักวิทยบริการ", "กองกลาง", "กองแผนงาน", "กองคลัง", "กองบริการการศึกษา", "กองการเจ้าหน้าที่", "สำนักงานส่งเสริมและบริหารงานวิจัย ฯ", "สำนักงานพัฒนานักศึกษา", "สำนักงานบริหารกายภาพและสิ่งแวดล้อม", "สำนักงานวิเทศสัมพันธ์", "สำนักงานนิติการ / สำนักงานกฎหมาย", "สำนักงานตรวจสอบภายใน", "สำนักงานรักษาความปลอดภัย", "สภาอาจารย์", "สหกรณ์ออมทรัพย์มหาวิทยาลัยอุบลราชธานี", "อุทยานวิทยาศาสตร์มหาวิทยาลัยอุบลราชธานี", "ศูนย์การจัดการความรู้ (KM)", "ศูนย์การเรียนรู้และพัฒนา \"งา\" เชิงเกษตรอุตสาหกรรมครัวเรือนแบบยั่งยืน", "สถานปฏิบัติการโรงแรมฯ (U-Place)", "ศูนย์วิจัยสังคมอนุภาคลุ่มน้ำโขง ฯ", "ศูนย์เครื่องมือวิทยาศาสตร์", "โรงพิมพ์มหาวิทยาลัยอุบลราชธานี"];
+const ORG_LIST = [
+    "สำนักคอมพิวเตอร์และเครือข่าย", "สำนักบริหารทรัพย์สินและสิทธิประโยชน์", "สำนักวิทยบริการ", 
+    "กองกลาง", "กองแผนงาน", "กองคลัง", "กองบริการการศึกษา", "กองการเจ้าหน้าที่", 
+    "สำนักงานส่งเสริมและบริหารงานวิจัย ฯ", "สำนักงานพัฒนานักศึกษา", "สำนักงานบริหารกายภาพและสิ่งแวดล้อม", 
+    "สำนักงานวิเทศสัมพันธ์", "สำนักงานนิติการ / สำนักงานกฎหมาย", "สำนักงานตรวจสอบภายใน", 
+    "สำนักงานรักษาความปลอดภัย", "สภาอาจารย์", "สหกรณ์ออมทรัพย์มหาวิทยาลัยอุบลราชธานี", 
+    "อุทยานวิทยาศาสตร์มหาวิทยาลัยอุบลราชธานี", "ศูนย์การจัดการความรู้ (KM)", 
+    "ศูนย์การเรียนรู้และพัฒนา \"งา\" เชิงเกษตรอุตสาหกรรมครัวเรือนแบบยั่งยืน", 
+    "สถานปฏิบัติการโรงแรมฯ (U-Place)", "ศูนย์วิจัยสังคมอนุภาคลุ่มน้ำโขง ฯ", 
+    "ศูนย์เครื่องมือวิทยาศาสตร์", "โรงพิมพ์มหาวิทยาลัยอุบลราชธานี"
+];
 
-// --- ตัวแปรสำหรับเก็บ Instance ของกราฟใหม่ ---
 let distributionBarInstance = null;
 let dailyTrendLineInstance = null;
 
-// ✅ ฟังก์ชันวาดกราฟแท่ง 2.1
-function drawDistributionBarChart(data) {
-    const ctx = document.getElementById('distributionBarChart');
-    if (!ctx) return;
-    if (distributionBarInstance) distributionBarInstance.destroy();
+// ==========================================
+// 🚀 DJANGO API INTEGRATION
+// ==========================================
 
-    const customOrder = { "นักศึกษา": 1, "บุคลากร": 2, "บุคคลภายนอก": 3 };
-    
-    const sortedData = Object.entries(data).sort((a, b) => {
-        const orderA = customOrder[a[0]] || 99;
-        const orderB = customOrder[b[0]] || 99;
+// ฟังก์ชันดึงข้อมูลจาก Django Backend และ Map ฟิลด์ให้ตรงกับที่ JS และกราฟต้องการ
+async function fetchLogsFromDjango() {
+    try {
+        const response = await fetch('/admin-portal/report/api/logs/'); 
+        if (!response.ok) return [];
         
-        if (orderA !== orderB) {
-            return orderA - orderB;
-        }
-        return b[1] - a[1];
-    });
+        const data = await response.json();
+        
+        return data.logs.map(log => {
+            const start = new Date(log.start_time);
+            const end = log.end_time ? new Date(log.end_time) : new Date();
+            const durationMs = end - start;
+            const durationMinutes = log.end_time ? Math.floor(durationMs / 60000) : 0;
+            
+            const swList = log.Software ? log.Software.split(';').map(s => s.trim()) : [];
+            const isAI = swList.some(s => s.toLowerCase().includes('gpt') || s.toLowerCase().includes('claude') || s.toLowerCase().includes('ai'));
 
-    distributionBarInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: sortedData.map(x => x[0]),
-            datasets: [{
-                label: 'จำนวนครั้ง',
-                data: sortedData.map(x => Math.floor(x[1])),
-                backgroundColor: '#1d73f2',
-                borderRadius: 4,
-                categoryPercentage: 0.3, 
-                barPercentage: 0.5,
-                maxBarThickness: 35
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { 
-                    beginAtZero: true, 
-                    ticks: { stepSize: 1, precision: 0, font: { family: "'Prompt', sans-serif" } },
-                    grid: { color: '#f0f0f0', drawBorder: true }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { family: "'Prompt', sans-serif", size: 12 }, color: '#666' }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: { bodyFont: { family: "'Prompt', sans-serif" } }
-            }
-        }
-    });
-}
-
-// admin-report.js
-
-/* admin-report.js */
-
-function drawDailyTrendLineChart(dailyData, timeMode, isSingleYear = false) {
-    const ctx = document.getElementById('dailyTrendLineChart');
-    if (!ctx) return;
-    if (dailyTrendLineInstance) dailyTrendLineInstance.destroy();
-
-    let labels = [];
-    let dataPoints = [];
-
-    if (timeMode === 'yearly') {
-        if (isSingleYear) {
-            // ✅ กรณีเลือกปีเดียว: โชว์รายเดือน (ม.ค. - ธ.ค.)
-            labels = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            dataPoints = labels.map(month => dailyData[month] || 0);
-        } else {
-            // ✅ กรณีเลือกหลายปี: วนลูปสร้างปีให้ครบช่วง (แม้ไม่มีข้อมูลก็ต้องขึ้น 0)
-            const yStart = parseInt(document.getElementById('yearStart').value); // ค่าปี ค.ศ. (เช่น 2024)
-            const yEnd = parseInt(document.getElementById('yearEnd').value);     // ค่าปี ค.ศ. (เช่น 2026)
-
-            // วนลูปตั้งแต่ปีเริ่มต้น ถึง ปีสิ้นสุด
-            for (let y = yStart; y <= yEnd; y++) {
-                const bYear = y + 543; // แปลงเป็น พ.ศ.
-                const key = bYear.toString();
-                
-                labels.push(key); // แกน X: 2567, 2568, 2569
-                dataPoints.push(dailyData[key] || 0); // แกน Y: ถ้าไม่มีข้อมูลให้ใส่ 0
-            }
-        }
-    } 
-    else if (timeMode === 'daily' || timeMode === 'monthly') {
-        // ... (ส่วนรายวันและรายเดือน ใช้โค้ดเดิมได้เลยครับ)
-        let startD, endD;
-        if (timeMode === 'daily') {
-            startD = new Date(document.getElementById('dateStart').value);
-            endD = new Date(document.getElementById('dateEnd').value);
-        } else {
-            const mStartVal = document.getElementById('monthStart').value;
-            const mEndVal = document.getElementById('monthEnd').value;
-            startD = new Date(mStartVal + "-01");
-            const parts = mEndVal.split('-');
-            endD = new Date(parts[0], parts[1], 0);
-        }
-
-        if (startD && endD && !isNaN(startD) && !isNaN(endD)) {
-            let curr = new Date(startD);
-            while (curr <= endD) {
-                const dateStr = curr.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-                labels.push(dateStr);
-                dataPoints.push(dailyData[dateStr] || 0);
-                curr.setDate(curr.getDate() + 1);
-            }
-        }
-    } 
-    else {
-        labels = Object.keys(dailyData);
-        dataPoints = labels.map(d => dailyData[d]);
+            return {
+                id: log.id,
+                userId: log.user_id,
+                userName: log.user_name,
+                userRole: log.user_type, // 'student', 'staff', 'guest'
+                userFaculty: log.department || 'ไม่ระบุ',
+                userLevel: 'ปริญญาตรี', 
+                userYear: log.user_year || '-',
+                pcId: log.computer ? log.computer.replace('PC-', '') : '?',
+                durationMinutes: durationMinutes,
+                usedSoftware: swList,
+                isAIUsed: isAI,
+                satisfactionScore: log.satisfaction_score,
+                comment: log.comment,
+                timestamp: log.end_time || log.start_time,
+                startTime: log.start_time,
+                action: log.end_time ? 'END_SESSION' : 'IN_USE'
+            };
+        });
+    } catch (error) {
+        console.error("Error fetching logs:", error);
+        return [];
     }
-
-    dailyTrendLineInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'จำนวนครั้งการใช้งาน',
-                data: dataPoints,
-                borderColor: '#1d73f2',
-                backgroundColor: 'rgba(29, 115, 242, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0, 
-                pointBackgroundColor: '#1d73f2',
-                pointRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } },
-                x: { grid: { display: true, color: '#f0f0f0' }, ticks: { font: { family: "'Prompt', sans-serif", size: 10 } } }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
 }
 
 // --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
-    allLogs = (DB.getLogs && typeof DB.getLogs === 'function') ? DB.getLogs() : [];
-    lastLogCount = allLogs.length; 
-
+document.addEventListener('DOMContentLoaded', async () => {
     initFilters();      
     initDateInputs();   
     
-    // เรียกฟังก์ชันนี้เพื่อให้แสดงข้อมูลตอนโหลด
+    // โหลดข้อมูลครั้งแรกจาก Django
+    allLogs = await fetchLogsFromDjango();
+    lastLogCount = allLogs.length; 
+    
     if (typeof renderLifetimeStats === 'function') {
         renderLifetimeStats();
     } else {
@@ -194,11 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     applyFilters(); 
 
-    setInterval(checkForUpdates, 5000); 
+    // เช็คข้อมูลใหม่จาก Backend ทุก 10 วินาที
+    setInterval(checkForUpdates, 10000); 
 });
 
-function checkForUpdates() {
-    const currentLogs = (DB.getLogs && typeof DB.getLogs === 'function') ? DB.getLogs() : [];
+async function checkForUpdates() {
+    const currentLogs = await fetchLogsFromDjango();
     if (currentLogs.length !== lastLogCount) {
         allLogs = currentLogs;
         lastLogCount = currentLogs.length;
@@ -224,10 +127,12 @@ function initFilters() {
 
     const orgContainer = document.getElementById('staffOrgList');
     if (orgContainer) {
-        orgContainer.innerHTML = ORG_LIST.map((org, index) => `
+        // ✅ นำรายชื่อ "คณะ" (FACULTY_LIST) มารวมกับ "หน่วยงาน" (ORG_LIST)
+        const ALL_STAFF_DEPTS = [...FACULTY_LIST, ...ORG_LIST];
+        orgContainer.innerHTML = ALL_STAFF_DEPTS.map((org, index) => `
             <div class="form-check">
-                <input class="form-check-input org-check" type="checkbox" value="${org}" id="org_${index}" checked>
-                <label class="form-check-label small" for="org_${index}">${org}</label>
+                <input class="form-check-input org-check" type="checkbox" value="${org}" id="org_staff_${index}" checked>
+                <label class="form-check-label small" for="org_staff_${index}">${org}</label>
             </div>
         `).join('');
     }
@@ -303,7 +208,6 @@ function getCheckedValues(containerId) {
     return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
 }
 
-// ✅ [ADDED FUNCTION] ฟังก์ชันเปิด-ปิด dropdown ชั้นปี (สำคัญมาก)
 function toggleStudentYearInputs() {
     const levelSelect = document.getElementById('filterEduLevel');
     const yearContainer = document.getElementById('filterYearContainer');
@@ -323,25 +227,19 @@ function toggleStudentYearInputs() {
 // ==========================================
 
 function generateReport() {
-    // ✅ บังคับรีเซ็ตหน้าเป็น 1 เมื่อกดปุ่มประมวลผล
     currentPage = 1;
     applyFilters(); 
 }
 
-// admin-report.js
-
 function applyFilters() { 
-    // 1. ดึงข้อมูล Log ทั้งหมดที่สิ้นสุดการใช้งานแล้ว
     const allStatsLogs = allLogs.filter(l => l.action === 'END_SESSION');
 
-    // 2. ดึงค่าตัวคัดกรองจากหน้าจอ
     const userModeEl = document.querySelector('input[name="userTypeOption"]:checked');
     const userMode = userModeEl ? userModeEl.value : 'all';
     const timeMode = document.getElementById('timeFilterType').value;
     const selectedFaculties = getCheckedValues('studentFacultyList');
     const selectedOrgs = getCheckedValues('staffOrgList');
 
-    // ✅ เพิ่มตัวเช็คว่าเลือกปีเดียวหรือไม่
     let isSingleYear = false;
     if (timeMode === 'yearly') {
         const yStart = document.getElementById('yearStart').value;
@@ -349,12 +247,11 @@ function applyFilters() {
         if (yStart === yEnd) isSingleYear = true;
     }
 
-    // 3. กรองข้อมูลตามเงื่อนไข
     let filteredLogs = allStatsLogs.filter(log => {
         const logDate = new Date(log.startTime || log.timestamp);
         const logFaculty = (log.userFaculty || "").trim();
 
-        // กรองตามเวลา
+        // 1. กรองเวลา
         if (timeMode === 'daily') {
             const start = new Date(document.getElementById('dateStart').value);
             const end = new Date(document.getElementById('dateEnd').value);
@@ -364,8 +261,7 @@ function applyFilters() {
             }
         } else if (timeMode === 'monthly') {
             const mStart = new Date(document.getElementById('monthStart').value + "-01");
-            const mEndInput = document.getElementById('monthEnd').value;
-            const mEndParts = mEndInput.split('-');
+            const mEndParts = document.getElementById('monthEnd').value.split('-');
             const mEnd = new Date(mEndParts[0], mEndParts[1], 0, 23, 59, 59);
             if (logDate < mStart || logDate > mEnd) return false;
         } else if (timeMode === 'yearly') {
@@ -375,10 +271,11 @@ function applyFilters() {
             if (logYear < yStart || logYear > yEnd) return false;
         }
 
+        // 2. กรองประเภทผู้ใช้ (เพิ่มอาจารย์)
         const role = (log.userRole || '').toLowerCase();
         
         if (userMode === 'student') {
-            if (role !== 'student') return false;
+            if (!role.includes('student') && !role.includes('นักศึกษา')) return false;
             const isFacultyMatch = selectedFaculties.some(fac => fac.trim() === logFaculty);
             if (!isFacultyMatch) return false;
 
@@ -395,7 +292,10 @@ function applyFilters() {
             }
         } 
         else if (userMode === 'staff') {
-            if (role !== 'staff' && role !== 'admin') return false;
+            // ✅ ครอบคลุมคำที่เป็นไปได้ทั้งหมดสำหรับบุคลากรและอาจารย์
+            const staffKeywords = ['staff', 'admin', 'teacher', 'อาจารย์', 'บุคลากร'];
+            if (!staffKeywords.some(kw => role.includes(kw))) return false;
+            
             const currentLogFaculty = (log.userFaculty || "").replace(/["\\]/g, "").trim();
             return selectedOrgs.some(org => {
                 const selectedOrgClean = org.replace(/["\\]/g, "").trim();
@@ -403,21 +303,22 @@ function applyFilters() {
             });
         }
         else if (userMode === 'external') {
-            if (role !== 'external') return false;
+            if (!role.includes('guest') && !role.includes('external') && !role.includes('ภายนอก')) return false;
         }
         
         return true;
     });
 
-    // 4. เตรียมข้อมูลกราฟ
     let distributionData = {};
     const timeChartData = {};
 
     filteredLogs.forEach(l => {
         let distLabel = l.userFaculty || 'ไม่ระบุ';
+        const roleCheck = (l.userRole || '').toLowerCase();
+        
         if (userMode === 'all') {
-            if (l.userRole === 'student') distLabel = "นักศึกษา";
-            else if (l.userRole === 'staff' || l.userRole === 'admin') distLabel = "บุคลากร";
+            if (roleCheck.includes('student') || roleCheck.includes('นักศึกษา')) distLabel = "นักศึกษา";
+            else if (roleCheck.includes('staff') || roleCheck.includes('admin') || roleCheck.includes('teacher') || roleCheck.includes('อาจารย์') || roleCheck.includes('บุคลากร')) distLabel = "บุคลากร";
             else distLabel = "บุคคลภายนอก";
         }
         distributionData[distLabel] = (distributionData[distLabel] || 0) + 1;
@@ -425,26 +326,20 @@ function applyFilters() {
         const dateObj = new Date(l.startTime || l.timestamp);
         let timeLabel;
 
-        // ✅ Logic การสร้าง Label ตามเงื่อนไขใหม่
         if (timeMode === 'daily' || timeMode === 'monthly') {
             timeLabel = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
         } else if (timeMode === 'yearly') {
             if (isSingleYear) {
-                // ถ้าปีเดียว ให้โชว์เป็นชื่อเดือน
                 timeLabel = dateObj.toLocaleDateString('th-TH', { month: 'long' });
             } else {
-                // ถ้าหลายปี ให้โชว์เป็นเลขปี พ.ศ.
                 timeLabel = (dateObj.getFullYear() + 543).toString();
             }
         }
         timeChartData[timeLabel] = (timeChartData[timeLabel] || 0) + 1;
     });
 
-    // 5. อัปเดตส่วนต่าง ๆ
     updateSummaryCards(filteredLogs);
     drawDistributionBarChart(distributionData);
-    
-    // ✅ ส่งตัวแปร isSingleYear ไปด้วย
     drawDailyTrendLineChart(timeChartData, timeMode, isSingleYear);
 
     const globalChartData = processLogsForCharts(filteredLogs, timeMode);
@@ -489,16 +384,8 @@ function processLogsForCharts(logs, mode) {
     };
     
     const pcUsageMap = new Map();
-    const allPCs = (DB.getPCs && typeof DB.getPCs === 'function') ? DB.getPCs() : [];
-    allPCs.forEach(pc => pcUsageMap.set(String(pc.id), { total: 0, count: 0 }));
 
     logs.forEach(log => {
-        const dateObj = new Date(log.timestamp);
-        let timeKey;
-        if (mode === 'daily') timeKey = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }); 
-        else if (mode === 'yearly') timeKey = (dateObj.getFullYear() + 543).toString();
-        else timeKey = dateObj.toLocaleDateString('th-TH', { year: '2-digit', month: 'short' });
-
         if (log.isAIUsed) result.aiUsageData.ai++; else result.aiUsageData.nonAI++;
 
         if (Array.isArray(log.usedSoftware)) {
@@ -510,10 +397,12 @@ function processLogsForCharts(logs, mode) {
 
         const pcId = String(log.pcId);
         const duration = log.durationMinutes || 0;
-        if (pcUsageMap.has(pcId)) {
-            pcUsageMap.get(pcId).total += duration;
-            pcUsageMap.get(pcId).count++;
+        
+        if (!pcUsageMap.has(pcId)) {
+            pcUsageMap.set(pcId, { total: 0, count: 0 });
         }
+        pcUsageMap.get(pcId).total += duration;
+        pcUsageMap.get(pcId).count++;
 
         if (log.satisfactionScore) {
             const score = parseInt(log.satisfactionScore);
@@ -528,8 +417,127 @@ function processLogsForCharts(logs, mode) {
 }
 
 // ==========================================
-// 5. CHART DRAWING FUNCTIONS (WITH PLUGINS)
+// 5. CHART DRAWING FUNCTIONS
 // ==========================================
+
+function drawDistributionBarChart(data) {
+    const ctx = document.getElementById('distributionBarChart');
+    if (!ctx) return;
+    if (distributionBarInstance) distributionBarInstance.destroy();
+
+    const customOrder = { "นักศึกษา": 1, "บุคลากร": 2, "บุคคลภายนอก": 3 };
+    
+    const sortedData = Object.entries(data).sort((a, b) => {
+        const orderA = customOrder[a[0]] || 99;
+        const orderB = customOrder[b[0]] || 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return b[1] - a[1];
+    });
+
+    distributionBarInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedData.map(x => x[0]),
+            datasets: [{
+                label: 'จำนวนครั้ง',
+                data: sortedData.map(x => Math.floor(x[1])),
+                backgroundColor: '#1d73f2',
+                borderRadius: 4,
+                categoryPercentage: 0.3, 
+                barPercentage: 0.5,
+                maxBarThickness: 35
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0, font: { family: "'Prompt', sans-serif" } }, grid: { color: '#f0f0f0', drawBorder: true } },
+                x: { grid: { display: false }, ticks: { font: { family: "'Prompt', sans-serif", size: 12 }, color: '#666' } }
+            },
+            plugins: { legend: { display: false }, tooltip: { bodyFont: { family: "'Prompt', sans-serif" } } }
+        }
+    });
+}
+
+function drawDailyTrendLineChart(dailyData, timeMode, isSingleYear = false) {
+    const ctx = document.getElementById('dailyTrendLineChart');
+    if (!ctx) return;
+    if (dailyTrendLineInstance) dailyTrendLineInstance.destroy();
+
+    let labels = [];
+    let dataPoints = [];
+
+    if (timeMode === 'yearly') {
+        if (isSingleYear) {
+            labels = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            dataPoints = labels.map(month => dailyData[month] || 0);
+        } else {
+            const yStart = parseInt(document.getElementById('yearStart').value); 
+            const yEnd = parseInt(document.getElementById('yearEnd').value);     
+            for (let y = yStart; y <= yEnd; y++) {
+                const bYear = y + 543; 
+                const key = bYear.toString();
+                labels.push(key); 
+                dataPoints.push(dailyData[key] || 0); 
+            }
+        }
+    } 
+    else if (timeMode === 'daily' || timeMode === 'monthly') {
+        let startD, endD;
+        if (timeMode === 'daily') {
+            startD = new Date(document.getElementById('dateStart').value);
+            endD = new Date(document.getElementById('dateEnd').value);
+        } else {
+            const mStartVal = document.getElementById('monthStart').value;
+            const mEndVal = document.getElementById('monthEnd').value;
+            startD = new Date(mStartVal + "-01");
+            const parts = mEndVal.split('-');
+            endD = new Date(parts[0], parts[1], 0);
+        }
+
+        if (startD && endD && !isNaN(startD) && !isNaN(endD)) {
+            let curr = new Date(startD);
+            while (curr <= endD) {
+                const dateStr = curr.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                labels.push(dateStr);
+                dataPoints.push(dailyData[dateStr] || 0);
+                curr.setDate(curr.getDate() + 1);
+            }
+        }
+    } 
+    else {
+        labels = Object.keys(dailyData);
+        dataPoints = labels.map(d => dailyData[d]);
+    }
+
+    dailyTrendLineInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'จำนวนครั้งการใช้งาน',
+                data: dataPoints,
+                borderColor: '#1d73f2',
+                backgroundColor: 'rgba(29, 115, 242, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0, 
+                pointBackgroundColor: '#1d73f2',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } },
+                x: { grid: { display: true, color: '#f0f0f0' }, ticks: { font: { family: "'Prompt', sans-serif", size: 10 } } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
 
 function drawTopSoftwareChart(data) {
     const ctx = document.getElementById('topSoftwareChart');
@@ -608,8 +616,8 @@ function drawAIUsagePieChart(d) {
             datasets: [{ 
                 data: [d.ai, d.nonAI], 
                 backgroundColor: ['#4e73df', '#e2e6ea'], 
-                borderWidth: 0,
-                hoverOffset: 4
+                borderWidth: 0, 
+                hoverOffset: 4 
             }] 
         }, 
         options: { 
@@ -713,7 +721,7 @@ function drawSatisfactionChart(data) {
     if(countEl) {
         countEl.innerHTML = `
             <div class="text-dark fw-bold" style="line-height: 1.2; margin-bottom: 0px;">คิดเป็นร้อยละ ${percentage}%</div>
-            <div class="text-dark" style="display: block; line-height: 1.2; margin-top: 2px;">จากผู้ใช้งานทั้งหมด ${total.toLocaleString()} คน</small>
+            <div class="text-dark" style="display: block; line-height: 1.2; margin-top: 2px;">จากผู้ใช้งานทั้งหมด ${total.toLocaleString()} คน</div>
         `;
     }
 
@@ -760,10 +768,13 @@ function renderLogHistory(logs) {
     if (!tbody) return;
 
     if (totalItems === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>ไม่พบข้อมูลประวัติการใช้งาน</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>ไม่พบข้อมูลประวัติการใช้งาน</td></tr>`;
         updatePaginationControls(0, 0, 0);
         return;
     }
+
+    if (typeof rowsPerPage === 'undefined') window.rowsPerPage = 10;
+    if (typeof currentPage === 'undefined') window.currentPage = 1;
 
     const totalPages = Math.ceil(totalItems / rowsPerPage);
     if (currentPage > totalPages) currentPage = 1;
@@ -773,52 +784,75 @@ function renderLogHistory(logs) {
     const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
     
     const currentLogs = filteredLogsGlobal
+        // ใช้ timestamp เพราะคุณแมพไว้ใน Fetch ครึ่งแรกแล้ว
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
         .slice(startIndex, endIndex);
 
     tbody.innerHTML = currentLogs.map((log, i) => {
-        const dateObj = new Date(log.timestamp);
-        const dateStr = dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' });
-        
+        // จัดการวันที่อย่างปลอดภัย
+        let dateStr = "-";
         let timeRangeStr = "-";
-        if (log.startTime) {
-            const start = new Date(log.startTime);
-            const startStr = start.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
-            const endStr = dateObj.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
-            timeRangeStr = `${startStr} - ${endStr}`;
-        } else {
-            timeRangeStr = dateObj.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+
+        if (log.timestamp) {
+            const dateObj = new Date(log.timestamp);
+            if (!isNaN(dateObj)) {
+                dateStr = dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                
+                if (log.startTime) {
+                    const start = new Date(log.startTime);
+                    const startStr = start.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+                    const endStr = dateObj.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+                    timeRangeStr = `${startStr} - ${endStr}`;
+                } else {
+                    timeRangeStr = dateObj.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+                }
+            }
         }
         
-        let roleBadge = '<span class="badge bg-secondary">Guest</span>';
-        if (log.userRole === 'student') roleBadge = '<span class="badge bg-primary">Student</span>';
-        else if (log.userRole === 'staff') roleBadge = '<span class="badge bg-success">Staff</span>';
-        else if (log.userRole === 'external') roleBadge = '<span class="badge bg-dark">External</span>';
+        // เช็ค Role ตาม userRole ที่คุณ Map ไว้
+        let roleBadge = '<span class="badge bg-secondary">Unknown</span>';
+        const userRole = String(log.userRole || "").toLowerCase();
 
+        if (userRole.includes('student') || userRole.includes('นักศึกษา')) {
+            roleBadge = '<span class="badge bg-primary">นักศึกษา</span>';
+        } else if (userRole.includes('staff') || userRole.includes('admin') || userRole.includes('teacher') || userRole.includes('อาจารย์') || userRole.includes('บุคลากร')) {
+            roleBadge = '<span class="badge bg-success">บุคลากร/อาจารย์</span>';
+        } else {
+            roleBadge = '<span class="badge bg-dark">บุคคลภายนอก</span>';
+        }
+
+        // Software
         let swTags = '-';
         if (log.usedSoftware && log.usedSoftware.length > 0) {
-            swTags = log.usedSoftware.map(s => `<span class="badge bg-light text-dark border me-1 mb-1">${s}</span>`).join('');
+            swTags = log.usedSoftware.map(s => {
+                if (s && s !== '-') return `<span class="badge bg-light text-dark border me-1 mb-1">${s}</span>`;
+                return '';
+            }).join('');
+            if (!swTags) swTags = '-';
         }
 
+        // คะแนน
         const score = log.satisfactionScore 
             ? `<span style="color: #ffc107;" class="fw-bold"><i class="bi bi-star-fill"></i> ${log.satisfactionScore}</span>` 
             : '<span class="text-muted">-</span>';
+
+        // คณะ
+        let facultyDisplay = log.userFaculty || '-';
+        if ((userRole.includes('student') || userRole.includes('นักศึกษา')) && log.userYear && log.userYear !== '-') {
+            facultyDisplay += ` <small class="text-muted">(ปี ${log.userYear})</small>`;
+        }
 
         return `
             <tr>
                 <td class="text-center text-muted small">${startIndex + i + 1}</td>
                 <td class="fw-bold text-primary text-center">${log.userId || '-'}</td>
                 <td>${log.userName || 'Unknown'}</td>
-                <td><div class="d-flex flex-wrap">${swTags}</div></td>
+                <td><div class="d-flex flex-wrap justify-content-center">${swTags}</div></td>
                 <td class="text-center">${dateStr}</td>
                 <td class="text-center"><span class="badge bg-light text-dark border">${timeRangeStr}</span></td>
-                <td>${log.userFaculty || '-'}</td>
-                <td class="text-center"> ${log.userRole === 'student' ? 
-                        `<span class="badge bg-info bg-opacity-10 text-info border border-info px-2" style="font-size: 0.75rem;">ปี ${log.userYear || 'N/A'}</span>` 
-                        : '-'}
-                </td>
+                <td>${facultyDisplay}</td>
                 <td class="text-center">${roleBadge}</td>
-                <td class="text-center"><span class="badge bg-dark bg-opacity-75">PC-${log.pcId}</span></td>
+                <td class="text-center"><span class="badge bg-dark bg-opacity-75">${log.pcId || '-'}</span></td>
                 <td class="text-center">${score}</td>
             </tr>
         `;
@@ -875,7 +909,7 @@ function renderFeedbackComments(logs) {
     const countBadge = document.getElementById('commentCount');
     if (!container) return;
 
-    const comments = logs.filter(log => log.comment && log.comment.trim() !== "");
+    const comments = (logs || []).filter(log => log.comment && String(log.comment).trim() !== "");
     if(countBadge) countBadge.innerText = comments.length;
 
     if (comments.length === 0) {
@@ -884,34 +918,47 @@ function renderFeedbackComments(logs) {
     }
 
     const sortedComments = comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
     container.innerHTML = sortedComments.map(log => {
         const score = parseInt(log.satisfactionScore) || 0;
         let stars = '';
         for(let i=1; i<=5; i++) stars += i <= score ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star text-muted opacity-25"></i>';
         
-        const dateObj = new Date(log.timestamp);
-        const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-        const timeStr = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        let dateStr = "-"; let timeStr = "-";
+        if (log.timestamp) {
+            const dateObj = new Date(log.timestamp);
+            if (!isNaN(dateObj)) {
+                dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                timeStr = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            }
+        }
+        
         const user = log.userName || 'Unknown';
-        const role = log.userRole === 'student' ? 'นักศึกษา' : (log.userRole === 'staff' ? 'บุคลากร' : 'Guest');
+        const userRole = String(log.userRole || "").toLowerCase();
+        
+        let roleName = 'บุคคลภายนอก';
+        if (userRole.includes('student') || userRole.includes('นักศึกษา')) roleName = 'นักศึกษา';
+        else if (userRole.includes('staff') || userRole.includes('admin') || userRole.includes('อาจารย์')) roleName = 'บุคลากร';
+
         let borderColor = '#dc3545'; let avatarColor = 'bg-danger';
         if (score >= 4) { borderColor = '#198754'; avatarColor = 'bg-success'; } 
         else if (score === 3) { borderColor = '#ffc107'; avatarColor = 'bg-warning text-dark'; }
+        
         const initial = user.charAt(0).toUpperCase();
 
         return `
             <div class="card feedback-item border-0 shadow-sm mb-2" style="border-left: 5px solid ${borderColor} !important;">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-start">
-                        <div class="avatar-circle ${avatarColor} bg-opacity-75 shadow-sm me-3 flex-shrink-0">${initial}</div>
+                        <div class="avatar-circle ${avatarColor} bg-opacity-75 text-white shadow-sm me-3 flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle fw-bold" style="width: 40px; height: 40px;">${initial}</div>
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <div><span class="fw-bold text-dark" style="font-size: 0.95rem;">${user}</span><span class="badge bg-light text-secondary border ms-1 fw-normal" style="font-size: 0.7rem;">${role}</span></div>
+                                <div><span class="fw-bold text-dark" style="font-size: 0.95rem;">${user}</span><span class="badge bg-light text-secondary border ms-1 fw-normal" style="font-size: 0.7rem;">${roleName}</span></div>
                                 <div class="small" style="font-size: 0.75rem;">${stars}</div>
                             </div>
                             <p class="mb-2 text-secondary" style="font-size: 0.9rem; line-height: 1.5;">"${log.comment}"</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-pc-display me-1"></i>PC-${log.pcId}</small>
+                                <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-pc-display me-1"></i>${log.pcId || '-'}</small>
                                 <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-clock me-1"></i>${dateStr} ${timeStr}</small>
                             </div>
                         </div>
@@ -921,265 +968,53 @@ function renderFeedbackComments(logs) {
     }).join('');
 }
 
-/* ในไฟล์ admin-report.js */
+// ==========================================
+// 7. EXPORT / IMPORT CSV
+// ==========================================
+function exportReport(mode) {
+    const modeNames = { 'daily': 'รายวัน', 'monthly': 'รายเดือน', 'quarterly': 'รายไตรมาส', 'yearly': 'รายปี' };
+    if (!confirm(`ยืนยันการดาวน์โหลดรายงาน "${modeNames[mode]}" หรือไม่?`)) return;
 
-function downloadLogTemplate() {
-    // 1. กำหนดหัวตารางให้ตรงกับที่ฟังก์ชัน Import (processLogCSV) ต้องการ
-    const headers = [
-        "ลำดับ", 
-        "รหัสผู้ใช้งาน", 
-        "ชื่อ-สกุล", 
-        "AI/Software ที่ใช้", 
-        "วันที่ใช้บริการ", 
-        "ช่วงเวลาใช้บริการ", 
-        "รหัสคณะ/สำนัก", 
-        "สถานะ", 
-        "PC ที่ใช้", 
-        "ระยะเวลา (นาที)", 
-        "ความพึงพอใจ (Score)"
-    ];
+    const today = new Date();
+    let startDate, endDate;
 
-    // 2. สร้างข้อมูลตัวอย่าง 2 แถว
+    switch(mode) {
+        case 'daily': startDate = new Date(today); endDate = new Date(today); break;
+        case 'monthly': startDate = new Date(today.getFullYear(), today.getMonth(), 1); endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
+        case 'quarterly': const q = Math.floor(today.getMonth() / 3); startDate = new Date(today.getFullYear(), q * 3, 1); endDate = new Date(today.getFullYear(), (q * 3) + 3, 0); break;
+        case 'yearly': startDate = new Date(today.getFullYear(), 0, 1); endDate = new Date(today.getFullYear(), 11, 31); break;
+        default: return;
+    }
+    
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+
+    let currentPath = window.location.pathname;
+    let exportPath = currentPath.replace(/\/report\/?$/, '/report/export/');
+    window.location.href = `${exportPath}?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`;
+}
+
+function downloadReportCSVTemplate() {
+    const headers = ["รหัสผู้ใช้", "ชื่อ-สกุล", "Software", "วันที่", "เวลา (เข้า-ออก)", "คณะ/หน่วยงาน", "ชั้นปี", "ประเภท", "PC", "คะแนน", "ข้อเสนอแนะ"];
     const sampleRows = [
-        ["1", "66123456", "นายสมชาย ตัวอย่าง", "VS Code; ChatGPT", "17/01/2026", "09:00 - 10:30", "คณะวิทยาศาสตร์", "นักศึกษา", "PC-01", "90", "5"],
-        ["2", "guest001", "นางสมหญิง ทดสอบ", "-", "17/01/2026", "13:00 - 14:00", "บุคคลภายนอก", "บุคคลภายนอก", "PC-05", "60", "4"]
+        ["66123456", "นายสมชาย เรียนดี", "ChatGPT", "17/01/2026", "09:00 - 10:30", "คณะวิทยาศาสตร์", "ปี 3", "นักศึกษา", "PC-01", "5", "ใช้งานได้ดีมาก"],
+        ["staff001", "อ.สมหญิง สอนดี", "Canva", "17/01/2026", "13:00 - 15:00", "คณะวิศวกรรมศาสตร์", "-", "บุคลากร", "PC-05", "4", "คีย์บอร์ดแข็งไปนิด"],
+        ["guest999", "บุคคล ทั่วไป", "-", "18/01/2026", "10:00 - 11:00", "บุคคลภายนอก", "-", "บุคคลภายนอก", "PC-02", "5", ""]
     ];
 
-    // 3. ประกอบร่าง CSV (ใส่ BOM \uFEFF เพื่อให้ Excel อ่านภาษาไทยออก)
     let csvContent = "\uFEFF" + headers.join(",") + "\n";
-
     sampleRows.forEach(row => {
-        // ครอบเครื่องหมายคำพูดถ้าข้อมูลมีจุลภาค (,) ป้องกัน CSV เพี้ยน
-        const safeRow = row.map(cell => cell.includes(',') ? `"${cell}"` : cell);
+        const safeRow = row.map(cell => (cell && String(cell).includes(',')) ? `"${cell}"` : cell);
         csvContent += safeRow.join(",") + "\n";
     });
 
-    // 4. สั่งดาวน์โหลดไฟล์
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    
     link.setAttribute("href", url);
-    link.setAttribute("download", "CKLab_Log_Template.csv"); // ชื่อไฟล์ที่ได้
+    link.setAttribute("download", "CKLab_Log_Template.csv"); 
     link.style.visibility = 'hidden';
-    
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-}
-
-function exportReport(mode) {
-    const modeNames = { 'daily': 'รายวัน (Daily)', 'monthly': 'รายเดือน (Monthly)', 'quarterly': 'รายไตรมาส (Quarterly)', 'yearly': 'รายปี (Yearly)' };
-    const selectedModeName = modeNames[mode] || mode;
-
-    if (!confirm(`ยืนยันการดาวน์โหลดรายงาน "${selectedModeName}" หรือไม่?`)) return;
-
-    const today = new Date();
-    let startDate, endDate, fileNamePrefix;
-    switch(mode) {
-        case 'daily': startDate = new Date(today); endDate = new Date(today); fileNamePrefix = `Daily_Report_${formatDateStr(today)}`; break;
-        case 'monthly': startDate = new Date(today.getFullYear(), today.getMonth(), 1); endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); fileNamePrefix = `Monthly_Report_${today.getFullYear()}_${today.getMonth()+1}`; break;
-        case 'quarterly': const q = Math.floor(today.getMonth() / 3); startDate = new Date(today.getFullYear(), q * 3, 1); endDate = new Date(today.getFullYear(), (q * 3) + 3, 0); fileNamePrefix = `Quarterly_Report_${today.getFullYear()}_Q${q+1}`; break;
-        case 'yearly': startDate = new Date(today.getFullYear(), 0, 1); endDate = new Date(today.getFullYear(), 11, 31); fileNamePrefix = `Yearly_Report_${today.getFullYear()}`; break;
-        default: return;
-    }
-    if (startDate) startDate.setHours(0, 0, 0, 0);
-    if (endDate) endDate.setHours(23, 59, 59, 999);
-    generateCSV(startDate, endDate, fileNamePrefix);
-}
-
-function exportAllLogs() {
-    // ✅ 1. เปลี่ยนแหล่งข้อมูล: ใช้ filteredLogsGlobal (ข้อมูลที่ผ่านการกรองและแสดงผลอยู่) 
-    // ถ้าไม่มีข้อมูลกรอง ให้กันพลาดด้วยการใช้ allLogs หรือ array ว่าง
-    const dataToExport = (typeof filteredLogsGlobal !== 'undefined' && filteredLogsGlobal.length > 0) 
-                         ? filteredLogsGlobal 
-                         : [];
-
-    if (dataToExport.length === 0) {
-        alert("ไม่พบข้อมูลตามเงื่อนไขที่กำหนด (0 รายการ)");
-        return;
-    }
-
-    // ✅ 2. ตรวจสอบว่าตอนนี้เป็นข้อมูล "ทั้งหมด" หรือ "ข้อมูลกรอง" เพื่อปรับข้อความยืนยัน
-    // ถ้าจำนวนข้อมูลที่จะโหลด ไม่เท่ากับ ข้อมูลทั้งหมดในระบบ แสดงว่ามีการกรองอยู่
-    const isFiltered = dataToExport.length !== allLogs.length;
-    
-    const confirmMsg = isFiltered
-        ? `ยืนยันการ Export ข้อมูลตามตัวกรองปัจจุบัน (${dataToExport.length} รายการ)?`
-        : `ยืนยันการ Export ข้อมูลทั้งหมดในระบบ (${dataToExport.length} รายการ)?`;
-
-    if (!confirm(confirmMsg)) return;
-
-    // ✅ 3. ตั้งชื่อไฟล์ให้สื่อความหมาย
-    const now = new Date();
-    // ถ้ากรองอยู่ ให้ใส่คำว่า Filtered_Report ถ้าไม่กรอง ให้ใช้ Full_Report
-    const fileTag = isFiltered ? "Filtered_Report" : "Full_Report";
-    
-    const fileName = `CKLab_${fileTag}_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}`;
-
-    // ส่งข้อมูลชุดนี้ไปสร้าง CSV
-    createCSVFile(dataToExport, fileName);
-}
-
-function generateCSV(startDateObj, endDateObj, fileNamePrefix) {
-    const filteredLogs = allLogs.filter(log => {
-        const logTime = new Date(log.timestamp).getTime();
-        return logTime >= startDateObj.getTime() && logTime <= endDateObj.getTime();
-    });
-    if (filteredLogs.length === 0) { alert('ไม่พบข้อมูลในช่วงเวลาดังกล่าว'); return; }
-    createCSVFile(filteredLogs, fileNamePrefix);
-}
-
-function createCSVFile(logs, fileName) {
-    logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); 
-    // ✅ Fix: CSV Header matches HTML table
-    const headers = ["ลำดับ", "รหัสผู้ใช้งาน", "ชื่อ-สกุล", "AI/Software ที่ใช้", "วันที่ใช้บริการ", "ช่วงเวลาใช้บริการ", "รหัสคณะ/สำนัก", "สถานะ", "PC ที่ใช้", "ระยะเวลา (นาที)", "ความพึงพอใจ (Score)"];
-    const csvRows = logs.map((log, index) => {
-        const userId = log.userId || '-';
-        const userName = log.userName || '-';
-        const software = (log.usedSoftware && log.usedSoftware.length) ? log.usedSoftware.join('; ') : '-';
-        const end = new Date(log.timestamp);
-        const start = log.startTime ? new Date(log.startTime) : end;
-        const dateStr = end.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
-        const timeRange = `${start.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}`;
-        const faculty = log.userFaculty || (log.userRole === 'external' ? 'บุคคลภายนอก' : '-');
-        let role = 'บุคคลภายนอก';
-        if (log.userRole === 'student') role = 'นักศึกษา';
-        else if (log.userRole === 'staff') role = 'บุคลากร/อาจารย์';
-        const pcName = `PC-${log.pcId || '?'}`;
-        const duration = log.durationMinutes ? log.durationMinutes.toFixed(0) : '0';
-        const satisfaction = log.satisfactionScore || '-';
-        return [`"${index + 1}"`, `"${userId}"`, `"${userName}"`, `"${software}"`, `"${dateStr}"`, `"${timeRange}"`, `"${faculty}"`, `"${role}"`, `"${pcName}"`, `"${duration}"`, `"${satisfaction}"`].join(',');
-    });
-    const csvContent = [headers.join(','), ...csvRows].join('\n');
-    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.setAttribute('href', URL.createObjectURL(blob));
-    link.setAttribute('download', `${fileName}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function handleLogImport(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) { processLogCSV(e.target.result); };
-    reader.readAsText(file);
-    input.value = '';
-}
-
-// ✅ FIX: Import parsing to handle "Start - End" time correctly
-function processLogCSV(csvText) {
-    const lines = csvText.split('\n').map(l => l.trim()).filter(l => l);
-    const dataLines = lines.slice(1);
-    
-    if (dataLines.length === 0) {
-        alert("❌ ไม่พบข้อมูลในไฟล์ CSV");
-        return;
-    }
-
-    let successCount = 0;
-    let failCount = 0;
-    let importedLogs = [];
-    const existingLogs = (DB.getLogs && typeof DB.getLogs === 'function') ? DB.getLogs() : [];
-
-    dataLines.forEach((line, index) => {
-        const cleanLine = line.replace(/"/g, '');
-        const cols = cleanLine.split(',');
-
-        if (cols.length < 5) { failCount++; return; }
-
-        try {
-            const userId = cols[1];
-            const name = cols[2];
-            const softwareStr = cols[3];
-            const dateStr = cols[4]; 
-            const timeRange = cols[5]; // "09:00 - 10:30"
-            const faculty = cols[6];
-            let roleRaw = cols[7];
-            const pcName = cols[8];
-            const duration = parseFloat(cols[9]) || 0;
-            const score = cols[10] === '-' ? null : parseInt(cols[10]);
-
-            let role = 'guest';
-            if (roleRaw.includes('นักศึกษา')) role = 'student';
-            else if (roleRaw.includes('บุคลากร')) role = 'staff';
-            else if (roleRaw.includes('ภายนอก')) role = 'external';
-
-            // ✅ Date Parsing
-            const [dd, mm, yyyy] = dateStr.split('/');
-            const yearAD = parseInt(yyyy) - 543;
-            
-            // ✅ Time Parsing (FULL UNPACK)
-            const timeParts = timeRange.split('-');
-            const startTimeStr = timeParts[0].trim(); 
-            const endTimeStr = timeParts.length > 1 ? timeParts[1].trim() : startTimeStr; 
-
-            const [startHr, startMin] = startTimeStr.split(':');
-            const [endHr, endMin] = endTimeStr.split(':');
-
-            const timestampStart = new Date(yearAD, parseInt(mm)-1, parseInt(dd), parseInt(startHr), parseInt(startMin));
-            const timestampEnd = new Date(yearAD, parseInt(mm)-1, parseInt(dd), parseInt(endHr), parseInt(endMin));
-            
-            const usedSoftware = (softwareStr && softwareStr !== '-') ? softwareStr.split(';').map(s => s.trim()) : [];
-            const isAI = usedSoftware.some(s => s.toLowerCase().includes('gpt') || s.toLowerCase().includes('claude') || s.toLowerCase().includes('ai'));
-
-            const newLog = {
-                timestamp: timestampEnd.toISOString(),
-                startTime: timestampStart.toISOString(),
-                action: 'END_SESSION', 
-                userId: userId,
-                userName: name,
-                userRole: role,
-                userFaculty: faculty,
-                pcId: pcName.replace('PC-', ''),
-                durationMinutes: duration,
-                usedSoftware: usedSoftware,
-                isAIUsed: isAI,
-                satisfactionScore: score,
-                imported: true 
-            };
-
-            importedLogs.push(newLog);
-            successCount++;
-
-        } catch (err) {
-            console.error("Parse Error row " + (index+2), err);
-            failCount++;
-        }
-    });
-
-    if (successCount > 0) {
-        const combinedLogs = [...existingLogs, ...importedLogs];
-        if (DB.setData) { DB.setData('ck_logs', combinedLogs); }
-        allLogs = combinedLogs;
-        lastLogCount = allLogs.length;
-        applyFilters();
-        if (typeof renderLifetimeStats === 'function') renderLifetimeStats();
-        alert(`✅ Import สำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว: ${failCount} รายการ`);
-    } else {
-        alert("❌ ไม่สามารถนำเข้าข้อมูลได้ (รูปแบบไฟล์ไม่ถูกต้อง)");
-    }
-}
-
-function formatDateStr(date) { return date.toLocaleDateString('en-CA'); } 
-function getChartColor(i) { return ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#6f42c1'][i%6]; }
-
-function renderLifetimeStats() {
-    const logs = DB.getLogs();
-    const total = logs.length;
-    const internal = logs.filter(l => l.userRole === 'student' || l.userRole === 'staff').length;
-    const external = total - internal; 
-
-    const totalEl = document.getElementById('lifetimeTotalCount');
-    if(totalEl) totalEl.innerText = total.toLocaleString();
-    
-    if(document.getElementById('lifetimeInternal')) document.getElementById('lifetimeInternal').innerText = internal.toLocaleString();
-    if(document.getElementById('lifetimeExternal')) document.getElementById('lifetimeExternal').innerText = external.toLocaleString();
-    if (total > 0) {
-        if(document.getElementById('progInternal')) document.getElementById('progInternal').style.width = `${(internal / total) * 100}%`;
-        if(document.getElementById('progExternal')) document.getElementById('progExternal').style.width = `${(external / total) * 100}%`;
-    }
 }
