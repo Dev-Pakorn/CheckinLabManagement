@@ -167,14 +167,14 @@ class VerifyUserAPIView(View):
 
 class CheckinView(View):
     def get(self, request, pc_id):
-        return redirect(f"{reverse('kiosk_index')}?pc={pc_id}")
+        return redirect(f"{reverse('index')}?pc={pc_id}")
 
     def post(self, request, pc_id):
         computer = get_object_or_404(Computer, name=pc_id)
         config = SiteConfig.objects.first()
         
         if (config and not config.is_open) or computer.status not in ['AVAILABLE', 'RESERVED']:
-            return redirect(f"{reverse('kiosk_index')}?pc={pc_id}&error=unavailable")
+            return redirect(f"{reverse('index')}?pc={pc_id}&error=unavailable")
 
         # เรียกใช้ CheckinForm เพื่อกรองและตรวจสอบข้อมูลที่รับมา
         form = CheckinForm(request.POST)
@@ -212,12 +212,12 @@ class CheckinView(View):
             return render(request, 'cklab/kiosk/timer.html', context)
         else:
             # หากข้อมูลที่ส่งมาไม่ถูกต้อง ให้เด้งกลับไปหน้าแรก
-            return redirect(f"{reverse('kiosk_index')}?pc={pc_id}&error=invalid_data")
+            return redirect(f"{reverse('index')}?pc={pc_id}&error=invalid_data")
 
 
 class CheckoutView(View):
     def get(self, request, pc_id):
-        return redirect(f"{reverse('kiosk_index')}?pc={pc_id}")
+        return redirect(f"{reverse('index')}?pc={pc_id}")
 
     def post(self, request, pc_id):
         computer = get_object_or_404(Computer, name=pc_id)
@@ -231,7 +231,7 @@ class CheckoutView(View):
         computer.save()
 
         log_id = usage_log.id if usage_log else 0
-        return redirect('kiosk_feedback', pc_id=computer.name, software_id=log_id)
+        return redirect('feedback', pc_id=computer.name, software_id=log_id)
 
 
 class FeedbackView(View):
@@ -260,4 +260,4 @@ class FeedbackView(View):
             except UsageLog.DoesNotExist:
                 pass
 
-        return redirect(f"{reverse('kiosk_index')}?pc={pc_id}")
+        return redirect(f"{reverse('index')}?pc={pc_id}")

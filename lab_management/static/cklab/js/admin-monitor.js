@@ -40,16 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const isManageOpen = manageEl && manageEl.classList.contains('show');
         // อัปเดตเฉพาะตอนที่ไม่ได้เปิด Modal ค้างไว้ เพื่อป้องกัน UI กระตุกขณะพิมพ์
         if (!isCheckinOpen && !isManageOpen) {
-            renderMonitor();
+            // ตรวจสอบว่าขณะนี้ผู้ใช้อยู่ที่แท็บ "คิวจอง" หรือไม่
+            const isBookingTabActive = document.getElementById('panel-booking')?.classList.contains('active');
+            renderMonitor({ skipBookingTable: isBookingTabActive });
         }
-    }, 5000); 
+    }, 5000);
 });
 
 // ==========================================
 // 🖥️ Render Monitor Grid & Future Bookings
 // ==========================================
 
-async function renderMonitor() {
+async function renderMonitor({ skipBookingTable = false } = {}) {
     const grid = document.getElementById('monitorGrid');
     if(!grid) return;
 
@@ -57,10 +59,10 @@ async function renderMonitor() {
         const response = await fetch('/kiosk/admin-portal/api/monitor/data/', {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
-        
+
         if (!response.ok) return;
         const data = await response.json();
-        
+
         // 1. อัปเดตตัวเลขสถิติด้านบน
         updateMonitorStats(data.counts || {});
 
@@ -81,7 +83,10 @@ async function renderMonitor() {
         }
 
         // 3. จัดการข้อมูลตารางคิวจองล่วงหน้า (แท็บที่ 2)
-        renderFutureBookings(data.bookings || []);
+        // ข้ามการ re-render ตารางถ้าผู้ใช้กำลังดูแท็บ Booking อยู่ เพื่อป้องกัน UI กระพริบ
+        if (!skipBookingTable) {
+            renderFutureBookings(data.bookings || []);
+        }
 
     } catch (error) {
         console.error("Error fetching monitor data:", error);

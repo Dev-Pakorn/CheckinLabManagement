@@ -51,7 +51,7 @@
         </div>
 
         <div class="d-grid gap-3 d-sm-flex justify-content-center mt-2">
-            <form id="checkoutForm" method="POST" action="{% url 'kiosk_checkout' computer.name %}">
+            <form id="checkoutForm" method="POST" action="{% url 'checkout' computer.name %}">
                 {% csrf_token %}
                 <button type="button" onclick="doCheckout()" class="btn btn-danger btn-lg px-5 py-3 rounded-pill fw-bold shadow transition-all">
                     <i class="bi bi-power me-2"></i> เลิกใช้งาน (Check-out)

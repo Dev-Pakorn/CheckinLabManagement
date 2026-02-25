@@ -184,5 +184,18 @@ class AdminBookingStatusAPIView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 class AdminBookingDetailView(LoginRequiredMixin, View):
-    def get(self, request, pk): pass
-    def post(self, request, pk): pass
+    def get(self, request, pk):
+        from django.shortcuts import get_object_or_404
+        from lab_management.models import Booking
+        booking = get_object_or_404(Booking, pk=pk)
+        return render(request, 'cklab/admin/admin-booking-detail.html', {'booking': booking})
+
+    def post(self, request, pk):
+        from django.shortcuts import get_object_or_404
+        from lab_management.models import Booking
+        booking = get_object_or_404(Booking, pk=pk)
+        status = request.POST.get('status')
+        if status:
+            booking.status = status
+            booking.save()
+        return redirect('admin_booking')
