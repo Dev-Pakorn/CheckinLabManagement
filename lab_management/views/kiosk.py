@@ -88,7 +88,7 @@ class StatusView(View):
         data = {
             'pc_id': computer.name,
             'status': computer.status,
-            # ✅ แก้ไขตรงนี้: หากยังไม่ได้ตั้งค่า config ให้ถือว่าเปิด (True) ไว้ก่อน เพื่อกันหน้าจอล็อก
+            # หากยังไม่ได้ตั้งค่า config ให้ถือว่าเปิด (True) ไว้ก่อน เพื่อกันหน้าจอล็อก
             'is_open': config.is_open if config else True, 
             'next_booking_start': next_booking.start_time.isoformat() if next_booking else None
         }
@@ -114,12 +114,12 @@ class VerifyUserAPIView(View):
             }
             data_payload = {"loginName": encoded_id}
             
-            # ใช้ verify=False เพื่อข้ามปัญหา SSL
-            data_response = requests.post(data_url, headers=headers, json=data_payload, timeout=10, verify=False)
+            # ✅ เพิ่ม timeout เป็น 30 วินาที ป้องกัน API มหาลัยตอบกลับช้า
+            data_response = requests.post(data_url, headers=headers, json=data_payload, timeout=30, verify=False)
             
             # ยอมรับทั้ง 200 (OK) และ 201 (Created) ว่าทำงานสำเร็จ
             if data_response.status_code not in [200, 201]:
-                return JsonResponse({'status': 'error', 'message': f'UBU API Connection Error ({data_response.status_code})'}, status=500)
+                return JsonResponse({'status': 'error', 'message': 'เกิดข้อผิดพลาดในการเชื่อมต่อกับระบบฐานข้อมูลของมหาวิทยาลัย โปรดลองใหม่อีกครั้ง'}, status=500)
 
             result = data_response.json()
 
@@ -158,12 +158,18 @@ class VerifyUserAPIView(View):
                     }
                 })
             else:
-                return JsonResponse({'status': 'error', 'message': 'ไม่พบข้อมูลในระบบ (รหัสผิด หรือไม่ได้ลงทะเบียน)'}, status=404)
+                # ✅ ปรับข้อความเมื่อไม่พบรหัส ให้เป็นภาษาไทยที่เข้าใจง่าย
+                return JsonResponse({'status': 'error', 'message': 'ไม่พบรหัสผู้ใช้งานนี้ในระบบ หรือท่านยังไม่ได้ลงทะเบียนในระบบของมหาวิทยาลัย'}, status=404)
 
+        except requests.exceptions.Timeout:
+            # ✅ ปรับข้อความเมื่อ Timeout
+            return JsonResponse({'status': 'error', 'message': 'หมดเวลาการเชื่อมต่อ (Timeout) เซิร์ฟเวอร์ของมหาวิทยาลัยตอบกลับช้า โปรดลองใหม่อีกครั้ง'}, status=504)
         except requests.exceptions.RequestException as e:
-            return JsonResponse({'status': 'error', 'message': 'Network Error: ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือ VPN'}, status=503)
+            # ✅ ปรับข้อความเมื่อเน็ตหลุด/เชื่อมต่อไม่ได้
+            return JsonResponse({'status': 'error', 'message': 'ไม่สามารถเชื่อมต่อกับเครือข่ายของมหาวิทยาลัยได้ โปรดตรวจสอบอินเทอร์เน็ตหรือระบบ VPN ของท่าน'}, status=503)
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': f'System Error: {str(e)}'}, status=500)
+            # ✅ ข้อความ Error รวมๆ ของระบบ
+            return JsonResponse({'status': 'error', 'message': f'ระบบขัดข้องภายใน: {str(e)}'}, status=500)
 
 
 class CheckinView(View):
