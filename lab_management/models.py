@@ -8,6 +8,7 @@ class SiteConfig(models.Model):
     location = models.CharField(max_length=255, blank=True, null=True, help_text="สถานที่ตั้ง (เช่น อาคาร 4 ชั้น 2)") #not sure if needed but can be useful for display on website
     admin_on_duty = models.ForeignKey('AdminonDuty', on_delete=models.SET_NULL, blank=True, null=True, help_text="เจ้าหน้าที่ดูแลระบบประจำวัน")
     is_open = models.BooleanField(default=True, help_text="สถานะการให้บริการห้องแล็บ (เปิด/ปิด)")
+    feedback_url = models.CharField(max_length=500, blank=True, null=True, default='https://docs.google.com/forms/d/e/1FAIpQLSfnaw6G3NFsuKwngOenWfQ2pU3AQDAYbJ-ON1W5TpU8xjDeKw/viewform?embedded=true', help_text="ลิงก์แบบประเมิน (Google Form)")
 
 class AdminonDuty(models.Model):
     contact_email = models.EmailField(blank=True, null=True, help_text="อีเมลติดต่อ (เช่น admin@example.com)") #not sure if needed but can be useful for display on website
