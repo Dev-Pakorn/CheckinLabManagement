@@ -66,8 +66,6 @@ async function fetchLogsFromDjango() {
                 durationMinutes: durationMinutes,
                 usedSoftware: swList,
                 isAIUsed: isAI,
-                satisfactionScore: log.satisfaction_score,
-                comment: log.comment,
                 timestamp: log.end_time || log.start_time,
                 startTime: log.start_time,
                 action: log.end_time ? 'END_SESSION' : 'IN_USE'
@@ -359,8 +357,6 @@ function applyFilters() {
     if (pieChartInstance) pieChartInstance.destroy();
     pieChartInstance = drawAIUsagePieChart(globalChartData.aiUsageData);
     
-    drawSatisfactionChart(globalChartData.satisfactionData);
-    renderFeedbackComments(filteredLogs);
     renderLogHistory(filteredLogs);
 }
 
@@ -389,7 +385,7 @@ function animateValue(id, start, end, duration) {
 function processLogsForCharts(logs, mode) {
     const result = {
         monthlyFacultyData: {}, monthlyOrgData: {}, aiUsageData: { ai: 0, nonAI: 0 },
-        pcAvgTimeData: [], satisfactionData: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, total: 0 },
+        pcAvgTimeData: [],
         softwareStats: {}, quickStats: { topPC: { name: '-', value: 0 }, avgTime: { hours: 0, minutes: 0 } }
     };
     
@@ -413,14 +409,6 @@ function processLogsForCharts(logs, mode) {
         }
         pcUsageMap.get(pcId).total += duration;
         pcUsageMap.get(pcId).count++;
-
-        if (log.satisfactionScore) {
-            const score = parseInt(log.satisfactionScore);
-            if (score >= 1 && score <= 5) {
-                result.satisfactionData[score]++;
-                result.satisfactionData.total++;
-            }
-        }
     });
 
     return result;
@@ -691,81 +679,6 @@ function drawAIUsagePieChart(d) {
     }); 
 }
 
-function drawSatisfactionChart(data) {
-    const total = data.total || 0;
-    let avgScore = 0.0;
-    if (total > 0) {
-        const weightedSum = (data[5]*5) + (data[4]*4) + (data[3]*3) + (data[2]*2) + (data[1]*1);
-        avgScore = (weightedSum / total); 
-    }
-    const avgDisplay = avgScore.toFixed(1);
-    const percentage = total > 0 ? ((avgScore / 5) * 100).toFixed(1) : 0;
-    
-    const scoreEl = document.getElementById('satisfactionAvgScore');
-    const countEl = document.getElementById('satisfactionTotalCount');
-    const starsEl = document.getElementById('satisfactionStars');
-    
-    if(scoreEl) {
-        let scoreClass = 'text-dark';
-        if (avgScore >= 4.5) scoreClass = 'text-primary';      
-        else if (avgScore >= 3.5) scoreClass = 'text-success'; 
-        else if (avgScore >= 2.5) scoreClass = 'text-warning';
-        else if (avgScore > 0) scoreClass = 'text-danger';
-
-        scoreEl.className = `fw-bold mb-0 me-3 ${scoreClass}`;
-        scoreEl.style.fontSize = '6rem'; 
-        scoreEl.style.lineHeight = '0.8';
-        scoreEl.innerText = avgDisplay;
-
-        if(starsEl) {
-            let starsHtml = '';
-            for(let i=1; i<=5; i++) {
-                if (i <= Math.floor(avgScore)) starsHtml += '<i class="bi bi-star-fill text-warning"></i>';
-                else if (i === Math.ceil(avgScore) && !Number.isInteger(avgScore)) starsHtml += '<i class="bi bi-star-half text-warning"></i>';
-                else starsHtml += '<i class="bi bi-star-fill text-muted opacity-25"></i>';
-            }
-            starsEl.innerHTML = starsHtml;
-        }
-    }
-    
-    if(countEl) {
-        countEl.innerHTML = `
-            <div class="text-dark fw-bold" style="line-height: 1.2; margin-bottom: 0px;">คิดเป็นร้อยละ ${percentage}%</div>
-            <div class="text-dark" style="display: block; line-height: 1.2; margin-top: 2px;">จากผู้ใช้งานทั้งหมด ${total.toLocaleString()} คน</div>
-        `;
-    }
-
-    const container = document.getElementById('satisfactionProgressBars');
-    if(!container) return;
-    container.innerHTML = '';
-    
-    const barConfigs = { 
-        5: { color: '#3498db' }, 
-        4: { color: '#2ecc71' }, 
-        3: { color: '#f1c40f' }, 
-        2: { color: '#e67e22' }, 
-        1: { color: '#e74c3c' } 
-    };
-
-    for(let i=5; i>=1; i--) {
-        const count = data[i] || 0;
-        const percent = total > 0 ? ((count / total) * 100).toFixed(0) : 0;
-        const config = barConfigs[i];
-        container.innerHTML += `
-            <div class="d-flex align-items-center mb-2" style="height: 24px;">
-                <div class="d-flex align-items-center justify-content-end me-2" style="width: 35px;">
-                    <span class="small fw-bold text-muted me-1">${i}</span><i class="bi bi-star-fill text-warning small"></i>
-                </div>
-                <div class="flex-grow-1 progress" style="height: 8px; background-color: #f1f3f5; border-radius: 10px; overflow: hidden;">
-                    <div class="progress-bar" style="width: ${percent}%; background-color: ${config.color}; border-radius: 10px; transition: width 1s ease;"></div>
-                </div>
-                <div class="ms-2 d-flex justify-content-between" style="width: 60px;">
-                    <span class="small fw-bold text-dark">${percent}%</span><span class="small text-muted" style="font-size: 0.75rem;">(${count})</span>
-                </div>
-            </div>`;
-    }
-}
-
 // ==========================================
 // 6. RENDER TABLES & HELPERS (PAGINATION FIXED)
 // ==========================================
@@ -778,7 +691,7 @@ function renderLogHistory(logs) {
     if (!tbody) return;
 
     if (totalItems === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>ไม่พบข้อมูลประวัติการใช้งาน</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>ไม่พบข้อมูลประวัติการใช้งาน</td></tr>`;
         updatePaginationControls(0, 0, 0);
         return;
     }
@@ -841,11 +754,6 @@ function renderLogHistory(logs) {
             if (!swTags) swTags = '-';
         }
 
-        // คะแนน
-        const score = log.satisfactionScore 
-            ? `<span style="color: #ffc107;" class="fw-bold"><i class="bi bi-star-fill"></i> ${log.satisfactionScore}</span>` 
-            : '<span class="text-muted">-</span>';
-
         // คณะ
         let facultyDisplay = log.userFaculty || '-';
         if ((userRole.includes('student') || userRole.includes('นักศึกษา')) && log.userYear && log.userYear !== '-') {
@@ -863,7 +771,6 @@ function renderLogHistory(logs) {
                 <td>${facultyDisplay}</td>
                 <td class="text-center">${roleBadge}</td>
                 <td class="text-center"><span class="badge bg-dark bg-opacity-75">${log.pcId || '-'}</span></td>
-                <td class="text-center">${score}</td>
             </tr>
         `;
     }).join('');
@@ -914,69 +821,6 @@ function changeRowsPerPage(rows) {
     renderLogHistory(filteredLogsGlobal);
 }
 
-function renderFeedbackComments(logs) {
-    const container = document.getElementById('feedbackCommentList');
-    const countBadge = document.getElementById('commentCount');
-    if (!container) return;
-
-    const comments = (logs || []).filter(log => log.comment && String(log.comment).trim() !== "");
-    if(countBadge) countBadge.innerText = comments.length;
-
-    if (comments.length === 0) {
-        container.innerHTML = `<div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted mt-5"><i class="bi bi-chat-square-heart fs-1 opacity-25 mb-2"></i><p class="small">ยังไม่มีข้อเสนอแนะในขณะนี้</p></div>`;
-        return;
-    }
-
-    const sortedComments = comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
-    container.innerHTML = sortedComments.map(log => {
-        const score = parseInt(log.satisfactionScore) || 0;
-        let stars = '';
-        for(let i=1; i<=5; i++) stars += i <= score ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star text-muted opacity-25"></i>';
-        
-        let dateStr = "-"; let timeStr = "-";
-        if (log.timestamp) {
-            const dateObj = new Date(log.timestamp);
-            if (!isNaN(dateObj)) {
-                dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-                timeStr = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-            }
-        }
-        
-        const user = log.userName || 'Unknown';
-        const userRole = String(log.userRole || "").toLowerCase();
-        
-        let roleName = 'บุคคลภายนอก';
-        if (userRole.includes('student') || userRole.includes('นักศึกษา')) roleName = 'นักศึกษา';
-        else if (userRole.includes('staff') || userRole.includes('admin') || userRole.includes('อาจารย์')) roleName = 'บุคลากร';
-
-        let borderColor = '#dc3545'; let avatarColor = 'bg-danger';
-        if (score >= 4) { borderColor = '#198754'; avatarColor = 'bg-success'; } 
-        else if (score === 3) { borderColor = '#ffc107'; avatarColor = 'bg-warning text-dark'; }
-        
-        const initial = user.charAt(0).toUpperCase();
-
-        return `
-            <div class="card feedback-item border-0 shadow-sm mb-2" style="border-left: 5px solid ${borderColor} !important;">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-start">
-                        <div class="avatar-circle ${avatarColor} bg-opacity-75 text-white shadow-sm me-3 flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle fw-bold" style="width: 40px; height: 40px;">${initial}</div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <div><span class="fw-bold text-dark" style="font-size: 0.95rem;">${user}</span><span class="badge bg-light text-secondary border ms-1 fw-normal" style="font-size: 0.7rem;">${roleName}</span></div>
-                                <div class="small" style="font-size: 0.75rem;">${stars}</div>
-                            </div>
-                            <p class="mb-2 text-secondary" style="font-size: 0.9rem; line-height: 1.5;">"${log.comment}"</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-pc-display me-1"></i>${log.pcId || '-'}</small>
-                                <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-clock me-1"></i>${dateStr} ${timeStr}</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    }).join('');
-}
 
 // ==========================================
 // 7. EXPORT / IMPORT CSV
@@ -1005,11 +849,11 @@ function exportReport(mode) {
 }
 
 function downloadReportCSVTemplate() {
-    const headers = ["รหัสผู้ใช้", "ชื่อ-สกุล", "Software", "วันที่", "เวลา (เข้า-ออก)", "คณะ/หน่วยงาน", "ชั้นปี", "ประเภท", "PC", "คะแนน", "ข้อเสนอแนะ"];
+    const headers = ["รหัสผู้ใช้", "ชื่อ-สกุล", "Software", "วันที่", "เวลา (เข้า-ออก)", "คณะ/หน่วยงาน", "ชั้นปี", "ประเภท", "PC"];
     const sampleRows = [
-        ["66123456", "นายสมชาย เรียนดี", "ChatGPT", "17/01/2026", "09:00 - 10:30", "คณะวิทยาศาสตร์", "ปี 3", "นักศึกษา", "PC-01", "5", "ใช้งานได้ดีมาก"],
-        ["staff001", "อ.สมหญิง สอนดี", "Canva", "17/01/2026", "13:00 - 15:00", "คณะวิศวกรรมศาสตร์", "-", "บุคลากร", "PC-05", "4", "คีย์บอร์ดแข็งไปนิด"],
-        ["guest999", "บุคคล ทั่วไป", "-", "18/01/2026", "10:00 - 11:00", "บุคคลภายนอก", "-", "บุคคลภายนอก", "PC-02", "5", ""]
+        ["66123456", "นายสมชาย เรียนดี", "ChatGPT", "17/01/2026", "09:00 - 10:30", "คณะวิทยาศาสตร์", "ปี 3", "นักศึกษา", "PC-01"],
+        ["staff001", "อ.สมหญิง สอนดี", "Canva", "17/01/2026", "13:00 - 15:00", "คณะวิศวกรรมศาสตร์", "-", "บุคลากร", "PC-05"],
+        ["guest999", "บุคคล ทั่วไป", "-", "18/01/2026", "10:00 - 11:00", "บุคคลภายนอก", "-", "บุคคลภายนอก", "PC-02"]
     ];
 
     let csvContent = "\uFEFF" + headers.join(",") + "\n";

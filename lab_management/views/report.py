@@ -69,8 +69,6 @@ class AdminReportView(LoginRequiredMixin, View):
                 user_year = row.get('ชั้นปี', '').strip()
                 raw_type = row.get('ประเภท', '').strip()
                 computer = row.get('PC', '').strip()
-                score_str = row.get('คะแนน', '').strip()
-                comment = row.get('ข้อเสนอแนะ', '').strip()
 
                 # ถ้าแถวไหนว่างเปล่าจริงๆ ให้ข้ามไป
                 if not user_id and not user_name:
@@ -84,12 +82,7 @@ class AdminReportView(LoginRequiredMixin, View):
                 else: user_type = 'guest'
 
                 # ---------------------------------------------
-                # 3. แปลงคะแนน
-                # ---------------------------------------------
-                score = int(score_str) if score_str.isdigit() else None
-
-                # ---------------------------------------------
-                # 4. แปลง วันที่ และ เวลา 
+                # 3. แปลง วันที่ และ เวลา 
                 # (เช่น "17/01/2026" และ "09:00 - 10:30")
                 # ---------------------------------------------
                 start_dt = None
@@ -113,7 +106,7 @@ class AdminReportView(LoginRequiredMixin, View):
                         pass # ถ้ากรอกวันที่ผิดรูปแบบ ให้ข้ามไปใช้ค่า Auto
 
                 # ---------------------------------------------
-                # 5. บันทึกลงฐานข้อมูล
+                # 4. บันทึกลงฐานข้อมูล
                 # ---------------------------------------------
                 # หมายเหตุ: start_time เป็น auto_now_add หากเราระบุค่าตอน .create() ทับลงไป บางครั้ง Django อาจจะเพิกเฉย
                 # เลยต้องใช้วิธีสร้าง object ก่อนแล้วค่อยอัปเดต ถ้าอยากบันทึกข้อมูลย้อนหลังให้แม่นยำ
@@ -125,9 +118,7 @@ class AdminReportView(LoginRequiredMixin, View):
                     user_year=user_year,
                     computer=computer,
                     Software=software,
-                    end_time=end_dt,
-                    satisfaction_score=score,
-                    comment=comment
+                    end_time=end_dt
                 )
                 
                 # เขียนทับ start_time อีกรอบเพื่อหลีกเลี่ยง auto_now_add
@@ -165,9 +156,7 @@ class AdminReportAPIView(LoginRequiredMixin, View):
                 'Software': log.Software,
                 # แปลง Datetime เป็น string (ISO Format) เพื่อให้ JS นำไปแปลงต่อได้ง่าย
                 'start_time': log.start_time.isoformat() if log.start_time else None,
-                'end_time': log.end_time.isoformat() if log.end_time else None,
-                'satisfaction_score': log.satisfaction_score,
-                'comment': log.comment
+                'end_time': log.end_time.isoformat() if log.end_time else None
             })
             
         return JsonResponse({'logs': log_list})
@@ -205,7 +194,7 @@ class AdminReportExportView(LoginRequiredMixin, View):
         writer.writerow([
             'ลำดับ', 'รหัสผู้ใช้งาน', 'ชื่อ-สกุล', 'AI/Software ที่ใช้', 
             'วันที่ใช้บริการ', 'เวลาเข้า', 'เวลาออก', 'คณะ/หน่วยงาน', 
-            'ชั้นปี', 'ประเภทผู้ใช้', 'PC ที่ใช้', 'คะแนนความพึงพอใจ', 'ข้อเสนอแนะ'
+            'ชั้นปี', 'ประเภทผู้ใช้', 'PC ที่ใช้'
         ])
 
         # เขียนข้อมูลแต่ละแถว
@@ -230,9 +219,7 @@ class AdminReportExportView(LoginRequiredMixin, View):
                 log.department or '-',
                 log.user_year or '-',
                 role_display,
-                log.computer or '-',
-                log.satisfaction_score or '-',
-                log.comment or '-'
+                log.computer or '-'
             ])
 
         return response
