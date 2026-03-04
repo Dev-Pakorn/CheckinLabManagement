@@ -154,11 +154,15 @@ class AdminMonitorDataAPIView(LoginRequiredMixin, View):
             local_start = localtime(b.start_time)
             local_end = localtime(b.end_time)
             
+            # 🌟 ดึงชื่อมาใช้งาน ถ้าไม่มีให้ใช้รหัสนักศึกษาแทน
+            display_name = getattr(b, 'user_name', None) or b.student_id
+            
             booking_list.append({
                 'date': local_start.strftime('%d/%m/%Y'),
                 'time': f"{local_start.strftime('%H:%M')} - {local_end.strftime('%H:%M')}",
                 'pc_name': b.computer.name if b.computer else 'ไม่ระบุ',
                 'user_id': b.student_id,
+                'user_name': display_name, # 🌟 เพิ่มบรรทัดนี้ส่งไปให้ Monitor
                 'status': b.status
             })
 

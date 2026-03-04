@@ -822,9 +822,13 @@ function changeRowsPerPage(rows) {
 }
 
 
-// ==========================================
-// 7. EXPORT / IMPORT CSV
-// ==========================================
+function getLocalYMD(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 function exportReport(mode) {
     const modeNames = { 'daily': 'รายวัน', 'monthly': 'รายเดือน', 'quarterly': 'รายไตรมาส', 'yearly': 'รายปี' };
     if (!confirm(`ยืนยันการดาวน์โหลดรายงาน "${modeNames[mode]}" หรือไม่?`)) return;
@@ -833,36 +837,73 @@ function exportReport(mode) {
     let startDate, endDate;
 
     switch(mode) {
-        case 'daily': startDate = new Date(today); endDate = new Date(today); break;
-        case 'monthly': startDate = new Date(today.getFullYear(), today.getMonth(), 1); endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
-        case 'quarterly': const q = Math.floor(today.getMonth() / 3); startDate = new Date(today.getFullYear(), q * 3, 1); endDate = new Date(today.getFullYear(), (q * 3) + 3, 0); break;
-        case 'yearly': startDate = new Date(today.getFullYear(), 0, 1); endDate = new Date(today.getFullYear(), 11, 31); break;
+        case 'daily': 
+            startDate = new Date(today); 
+            endDate = new Date(today); 
+            break;
+        case 'monthly': 
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1); 
+            endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); 
+            break;
+        case 'quarterly': 
+            const q = Math.floor(today.getMonth() / 3); 
+            startDate = new Date(today.getFullYear(), q * 3, 1); 
+            endDate = new Date(today.getFullYear(), (q * 3) + 3, 0); 
+            break;
+        case 'yearly': 
+            startDate = new Date(today.getFullYear(), 0, 1); 
+            endDate = new Date(today.getFullYear(), 11, 31); 
+            break;
         default: return;
     }
     
-    if (startDate) startDate.setHours(0, 0, 0, 0);
-    if (endDate) endDate.setHours(23, 59, 59, 999);
-
     let currentPath = window.location.pathname;
     let exportPath = currentPath.replace(/\/report\/?$/, '/report/export/');
-    window.location.href = `${exportPath}?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`;
+    
+    // 🌟 [เพิ่มใหม่] ลอจิกสำหรับเช็คว่าเลือกคณะ/หน่วยงานอะไรไว้บ้าง
+    let selectedDepts = [];
+    const userTypeElement = document.querySelector('input[name="userTypeOption"]:checked');
+    const userType = userTypeElement ? userTypeElement.value : 'all';
+    
+    if (userType === 'student') {
+        document.querySelectorAll('#studentFacultyList input[type="checkbox"]:checked').forEach(cb => {
+            selectedDepts.push(cb.value);
+        });
+    } else if (userType === 'staff') {
+        document.querySelectorAll('#staffOrgList input[type="checkbox"]:checked').forEach(cb => {
+            selectedDepts.push(cb.value);
+        });
+    }
+
+    // 🌟 [เพิ่มใหม่] สร้างพารามิเตอร์ URL สำหรับส่งค่า
+    let deptQuery = "";
+    if (selectedDepts.length > 0) {
+        deptQuery = `&department=${encodeURIComponent(selectedDepts.join(','))}`;
+    }
+    
+    // ส่งวันที่แบบ YYYY-MM-DD + คณะ (ถ้ามี) ไปให้หลังบ้านจัดการต่อ
+    window.location.href = `${exportPath}?start_date=${getLocalYMD(startDate)}&end_date=${getLocalYMD(endDate)}${deptQuery}`;
 }
 
 function downloadReportCSVTemplate() {
     const headers = ["รหัสผู้ใช้", "ชื่อ-สกุล", "Software", "วันที่", "เวลา (เข้า-ออก)", "คณะ/หน่วยงาน", "ชั้นปี", "ประเภท", "PC"];
     const sampleRows = [
-        ["66123456", "นายสมชาย เรียนดี", "ChatGPT", "17/01/2026", "09:00 - 10:30", "คณะวิทยาศาสตร์", "ปี 3", "นักศึกษา", "PC-01"],
-        ["staff001", "อ.สมหญิง สอนดี", "Canva", "17/01/2026", "13:00 - 15:00", "คณะวิศวกรรมศาสตร์", "-", "บุคลากร", "PC-05"],
-        ["guest999", "บุคคล ทั่วไป", "-", "18/01/2026", "10:00 - 11:00", "บุคคลภายนอก", "-", "บุคคลภายนอก", "PC-02"]
+        ["68114540353", "นายปภังกร นิชรัตน์", "ChatGPT", "04/03/2026", "09:00 - 10:30", "คณะวิทยาศาสตร์", "ปี 1", "นักศึกษา", "PC-01"],
+        ["scwayopu", "อ.วาโย ปุยะติ", "Canva", "04/03/2026", "13:00 - 15:00", "คณะวิทยาศาสตร์", "-", "บุคลากร", "PC-05"],
+        ["guest999", "บุคคลภายนอก", "ChatGPT", "04/03/2026", "10:00 - 11:00", "บุคคลภายนอก", "-", "บุคคลภายนอก", "PC-02"]
     ];
 
-    let csvContent = "\uFEFF" + headers.join(",") + "\n";
+    // เอา \uFEFF ออกจาก String
+    let csvContent = headers.join(",") + "\n";
     sampleRows.forEach(row => {
         const safeRow = row.map(cell => (cell && String(cell).includes(',')) ? `"${cell}"` : cell);
         csvContent += safeRow.join(",") + "\n";
     });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // สร้าง BOM เป็น Uint8Array
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);

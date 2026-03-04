@@ -169,20 +169,53 @@ class AdminReportExportView(LoginRequiredMixin, View):
     def get(self, request):
         start_date_str = request.GET.get('start_date')
         end_date_str = request.GET.get('end_date')
+        
+        # 🌟 1. รับค่า department จาก URL ที่ JS ส่งมา (เช่น "คณะวิทยาศาสตร์,คณะศิลปศาสตร์")
+        department_str = request.GET.get('department')
 
         logs = UsageLog.objects.all().order_by('-start_time')
 
-        # หากมีการระบุช่วงเวลามาจากปุ่มในหน้าเว็บ (รายวัน, รายเดือน, รายปี)
+        # 🌟 2. ถ้าระบุคณะ/หน่วยงานมา ให้กรองข้อมูลตามรายชื่อเหล่านั้นก่อน
+        if department_str:
+            # แปลง string ที่คั่นด้วยลูกน้ำ ให้กลายเป็น List
+            dept_list = [d.strip() for d in department_str.split(',')]
+            # กรองเอาเฉพาะแถวที่ department ตรงกับใน List (__in)
+            logs = logs.filter(department__in=dept_list)
+
+        # 3. จัดการกรองวันที่ตามปกติ
         if start_date_str and end_date_str:
-            start_date = parse_datetime(start_date_str)
-            end_date = parse_datetime(end_date_str)
-            if start_date and end_date:
-                logs = logs.filter(start_time__gte=start_date, start_time__lte=end_date)
+            try:
+                # ตัดเอาเฉพาะ 10 ตัวแรก (YYYY-MM-DD) ป้องกันกรณี JS ส่งเวลาแปลกๆ ติดมา
+                s_date = start_date_str[:10]
+                e_date = end_date_str[:10]
+                
+                # แปลงเป็นออบเจกต์ Date
+                start_dt_naive = datetime.strptime(s_date, '%Y-%m-%d')
+                end_dt_naive = datetime.strptime(e_date, '%Y-%m-%d')
+
+                # กำหนดเวลาให้ครอบคลุมทั้งวัน (00:00:00 - 23:59:59)
+                start_dt_naive = start_dt_naive.replace(hour=0, minute=0, second=0)
+                end_dt_naive = end_dt_naive.replace(hour=23, minute=59, second=59)
+
+                # จัดการ Timezone (ถ้าโปรเจกต์เปิดใช้งาน USE_TZ)
+                from django.conf import settings
+                if getattr(settings, 'USE_TZ', False):
+                    start_dt = timezone.make_aware(start_dt_naive)
+                    end_dt = timezone.make_aware(end_dt_naive)
+                else:
+                    start_dt = start_dt_naive
+                    end_dt = end_dt_naive
+
+                # กรองข้อมูล (ใช้ __range เพื่อให้ครอบคลุมตั้งแต่ต้นจนจบวัน)
+                logs = logs.filter(start_time__range=(start_dt, end_dt))
+                
+            except Exception as e:
+                # ปริ้นท์บอกใน Terminal จะได้รู้ว่าพังตรงไหน หรือ JS ส่งอะไรมา
+                print(f"🔥 [Export Error]: {e} | รับค่ามาเป็น: {start_date_str} ถึง {end_date_str}")
+                pass 
 
         # ตั้งค่า Header ให้เบราว์เซอร์รับรู้ว่าเป็นการดาวน์โหลดไฟล์ CSV
         response = HttpResponse(content_type='text/csv')
-        
-        # ตั้งชื่อไฟล์แบบมี Timestamp
         filename = f"CKLab_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
@@ -190,20 +223,17 @@ class AdminReportExportView(LoginRequiredMixin, View):
         response.write(u'\ufeff'.encode('utf8'))
 
         writer = csv.writer(response)
-        # เขียนหัวตาราง (Header)
         writer.writerow([
             'ลำดับ', 'รหัสผู้ใช้งาน', 'ชื่อ-สกุล', 'AI/Software ที่ใช้', 
             'วันที่ใช้บริการ', 'เวลาเข้า', 'เวลาออก', 'คณะ/หน่วยงาน', 
             'ชั้นปี', 'ประเภทผู้ใช้', 'PC ที่ใช้'
         ])
 
-        # เขียนข้อมูลแต่ละแถว
         for idx, log in enumerate(logs, start=1):
             date_str = log.start_time.strftime('%d/%m/%Y') if log.start_time else '-'
             start_t = log.start_time.strftime('%H:%M') if log.start_time else '-'
             end_t = log.end_time.strftime('%H:%M') if log.end_time else '-'
             
-            # แปลงประเภทผู้ใช้เป็นภาษาไทย
             role_display = 'บุคคลภายนอก'
             if log.user_type == 'student': role_display = 'นักศึกษา'
             elif log.user_type == 'staff': role_display = 'บุคลากร'

@@ -47,7 +47,7 @@ class Booking(models.Model):
 
     # ใช้รหัสนักศึกษาและชื่อเหมือนตาราง CheckinRecord ของเพื่อน
     student_id = models.CharField(max_length=20, verbose_name="รหัสนักศึกษา")
-    
+    user_name = models.CharField(max_length=100, null=True, blank=True, verbose_name="ชื่อผู้จอง")
     # เชื่อมกับเครื่องคอมพิวเตอร์
     computer = models.ForeignKey('Computer', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="เครื่องคอมพิวเตอร์")
     
